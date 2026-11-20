@@ -91,7 +91,7 @@ def explore_university(slug):
 def demo_login(role):
     """
     One-click demo login for hackathon judges & presentations.
-    Provides instant access as Admin, Student, or Staff at Apex University.
+    Provides instant access as Admin, Student, Security, or Faculty at Apex University.
     """
     db = get_db()
     apex = db.universities.find_one({"slug": "apex-university"})
@@ -101,13 +101,22 @@ def demo_login(role):
     if not apex:
         return redirect(url_for("auth.register_university"))
 
-    target_email = "admin@apex.edu"
-    if role == "student":
-        target_email = "sarah@apex.edu"
-    elif role == "staff":
-        target_email = "marcus.security@apex.edu"
+    role = role.lower()
+    email_map = {
+        "admin": "admin@apex.edu",
+        "student": "student@apex.edu",
+        "security": "security@apex.edu",
+        "staff": "security@apex.edu",
+        "faculty": "faculty@apex.edu",
+    }
+    target_email = email_map.get(role, "admin@apex.edu")
 
     user = db.users.find_one({"university_id": apex["_id"], "email": target_email})
+    if not user:
+        if role == "student":
+            user = db.users.find_one({"university_id": apex["_id"], "email": "sarah@apex.edu"})
+        elif role in ("security", "staff"):
+            user = db.users.find_one({"university_id": apex["_id"], "email": "marcus.security@apex.edu"})
     if not user:
         user = db.users.find_one({"university_id": apex["_id"], "role": role})
     if not user:

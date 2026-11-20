@@ -230,6 +230,38 @@ def seed_demo_data(db):
     }
     marcus_id = db.users.insert_one(staff_officer).inserted_id
 
+    # Additional Demo Role Accounts for Judges & Showcase
+    db.users.insert_one({
+        "university_id": apex_id,
+        "name": "Sarah Jenkins (Student)",
+        "email": "student@apex.edu",
+        "password_hash": hashed_pwd,
+        "role": "student",
+        "status": "active",
+        "phone": "+1 (617) 555-8391",
+        "created_at": three_days_ago,
+    })
+    db.users.insert_one({
+        "university_id": apex_id,
+        "name": "Officer Marcus Cole (Security Desk)",
+        "email": "security@apex.edu",
+        "password_hash": hashed_pwd,
+        "role": "staff",
+        "status": "active",
+        "phone": "+1 (617) 555-0199",
+        "created_at": three_days_ago,
+    })
+    db.users.insert_one({
+        "university_id": apex_id,
+        "name": "Dr. Eleanor Vance (Faculty & Lab Director)",
+        "email": "faculty@apex.edu",
+        "password_hash": hashed_pwd,
+        "role": "staff",
+        "status": "active",
+        "phone": "+1 (617) 555-4321",
+        "created_at": three_days_ago,
+    })
+
     # Seed Reports for Apex University
     # Report 1: Lost MacBook
     rep1 = {

@@ -15,21 +15,27 @@
     </div>
 
     <!-- Hackathon Quick-Login Banner -->
-    <div class="glass-panel p-3 mb-3" style="border:1px dashed rgba(236,72,153,0.4); background:#FFF1F2;">
+    <div class="glass-panel p-3 mb-3" style="border:1px dashed rgba(99,102,241,0.4); background:#EEF2FF;">
       <div class="d-flex align-items-center justify-content-between mb-2">
-        <span class="small fw-bold text-dark"><i class="fa fa-bolt text-danger me-1"></i>Judge / Evaluator Demo Access</span>
-        <span class="badge" style="background:#EC4899; color:#fff; font-size:0.65rem;">1-Click</span>
+        <span class="small fw-bold text-dark"><i class="fa fa-bolt text-warning me-1"></i>Demo Accounts (1-Click Access)</span>
+        <span class="badge" style="background:#4F46E5; color:#fff; font-size:0.65rem;">Judge Access</span>
       </div>
-      <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ url_for('main.demo_login', role='student') }}" class="btn btn-glass btn-sm flex-grow-1" style="font-size:0.75rem;">
-          <i class="fa fa-user-graduate me-1 text-info"></i>Student
+      <div class="d-flex gap-2 flex-wrap mb-2">
+        <a href="{{ url_for('main.demo_login', role='student') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
+          <i class="fa fa-user-graduate me-1 text-primary"></i>Student
         </a>
-        <a href="{{ url_for('main.demo_login', role='staff') }}" class="btn btn-glass btn-sm flex-grow-1" style="font-size:0.75rem;">
-          <i class="fa fa-user-shield me-1 text-success"></i>Security
+        <a href="{{ url_for('main.demo_login', role='security') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
+          <i class="fa fa-shield-halved me-1 text-success"></i>Security
         </a>
-        <a href="{{ url_for('main.demo_login', role='admin') }}" class="btn btn-glass btn-sm flex-grow-1" style="font-size:0.75rem;">
+        <a href="{{ url_for('main.demo_login', role='faculty') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
+          <i class="fa fa-chalkboard-user me-1 text-info"></i>Faculty
+        </a>
+        <a href="{{ url_for('main.demo_login', role='admin') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
           <i class="fa fa-crown me-1 text-warning"></i>Admin
         </a>
+      </div>
+      <div class="small text-secondary" style="font-size:0.72rem;">
+        <i class="fa fa-key me-1 text-muted"></i>Password for all accounts: <code class="text-primary fw-bold">password123</code> | Campus: <span class="fw-semibold">Apex University</span>
       </div>
     </div>
 
