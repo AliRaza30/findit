@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Digital Handover Pass · {{ verification_code }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center my-4">
+  <div class="col-md-8 col-lg-6">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="{{ url_for('reports.detail', report_id=report._id) }}" class="btn btn-glass btn-sm">
+        <i class="fa fa-arrow-left me-1"></i>Back to Report
+      </a>
+      <button class="btn btn-glass btn-sm" onclick="window.print()">
+        <i class="fa fa-print me-1"></i>Print Pass
+      </button>
+    </div>
+
+    <!-- Handover Certificate Card -->
+    <div class="glass-panel p-4 position-relative overflow-hidden" style="border: 2px solid rgba(16,185,129,0.5); box-shadow:0 0 35px rgba(16,185,129,0.2);">
+      <div style="position:absolute; top:0; left:0; right:0; height:6px; background:linear-gradient(90deg, #10B981, #06B6D4, #6366F1);"></div>
+
+      <!-- Header -->
+      <div class="text-center pb-3 border-bottom border-secondary border-opacity-25 mb-4 mt-2">
+        <span class="badge" style="background:rgba(16,185,129,0.2); color:#34D399; font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">
+          <i class="fa fa-shield-check me-1"></i>Authorized Security Clearance
+        </span>
+        <h3 class="fw-800 text-white mt-2 mb-1">Campus Handover Pass</h3>
+        <p class="small text-secondary mb-0">{{ university.name }} · Official Item Retrieval Voucher</p>
+      </div>
+
+      <!-- Verification QR Code -->
+      <div class="text-center mb-4">
+        <div class="d-inline-block p-3 rounded" style="background:#fff; box-shadow:0 8px 25px rgba(0,0,0,0.4);" id="pass-qrcode"></div>
+        <div class="fw-bold text-white mt-2 font-monospace" style="font-size:1.25rem; letter-spacing:2px;">
+          {{ verification_code }}
+        </div>
+        <div class="text-dim small">Scan at Security Desk for Handover Approval</div>
+      </div>
+
+      <!-- Details List -->
+      <div class="rounded p-3 mb-4" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+          <span class="small text-secondary">Recovered Item:</span>
+          <strong class="small text-white">{{ report.title }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+          <span class="small text-secondary">Campus Category:</span>
+          <strong class="small text-white">{{ report.category }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+          <span class="small text-secondary">Authorized Claimant:</span>
+          <strong class="small text-white">{{ claim.claimant_name if claim else current_user.name }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+          <span class="small text-secondary">Pickup Location:</span>
+          <strong class="small text-white">{{ university.security_office or 'Central Security Desk Room 104' }}</strong>
+        </div>
+        <div class="d-flex justify-content-between py-2">
+          <span class="small text-secondary">Status:</span>
+          <span class="badge badge-found">Verified &amp; Approved</span>
+        </div>
+      </div>
+
+      <!-- Security Desk Instructions -->
+      <div class="p-3 rounded mb-2 text-center" style="background:rgba(99,102,241,0.08); border:1px dashed rgba(99,102,241,0.3);">
+        <div class="small fw-bold text-white mb-1"><i class="fa fa-circle-info text-info me-1"></i>Campus Guard Instructions</div>
+        <p class="small text-secondary mb-0">Present this digital pass alongside your student/staff ID card at the safety office to claim your possession.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  new QRCode(document.getElementById("pass-qrcode"), {
+    text: "FINDIT-VERIFY:{{ verification_code }}:ITEM:{{ report._id }}",
+    width: 140,
+    height: 140,
+    colorDark: "#0F172A",
+    colorLight: "#FFFFFF",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+</script>
+{% endblock %}

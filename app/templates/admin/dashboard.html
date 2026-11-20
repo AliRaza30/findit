@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Campus Admin Command Center · {{ university.name }}{% endblock %}
+
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h2 class="fw-800 mb-1" style="font-size:2rem; letter-spacing:-0.5px;">
+      Campus Admin <span class="brand-gradient-text">Command Center</span>
+    </h2>
+    <p class="text-secondary small mb-0">{{ university.name }} · Real-Time Incident Telemetry &amp; Verification</p>
+  </div>
+</div>
+
+<!-- Bento Grid KPI Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#FFE4E6; color:#E11D48;">
+        <i class="fa fa-folder-open"></i>
+      </div>
+      <div class="stat-value text-dark">{{ stats.open }}</div>
+      <div class="stat-label">Active Unresolved Cases</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#D1FAE5; color:#059669;">
+        <i class="fa fa-circle-check"></i>
+      </div>
+      <div class="stat-value text-emerald">{{ stats.resolved }}</div>
+      <div class="stat-label">Safely Handed Over</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#EEF2FF; color:#4338CA;">
+        <i class="fa fa-users"></i>
+      </div>
+      <div class="stat-value text-dark">{{ stats.users }}</div>
+      <div class="stat-label">Verified Members</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#FEF3C7; color:#D97706;">
+        <i class="fa fa-clock"></i>
+      </div>
+      <div class="stat-value text-warning">{{ stats.pending_claims }}</div>
+      <div class="stat-label">Claims Awaiting Review</div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js Visual Telemetry -->
+<div class="row g-4 mb-5">
+  <div class="col-lg-5">
+    <div class="glass-panel p-4 h-100">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="fa fa-chart-pie text-primary me-2"></i>Category Distribution
+        </h6>
+        <span class="badge" style="background:#EEF2FF; color:#4338CA;">All Cases</span>
+      </div>
+      <div style="position:relative; height:240px;">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="glass-panel p-4 h-100">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="fa fa-chart-bar text-emerald me-2"></i>Campus Location Hotspots
+        </h6>
+        <span class="badge" style="background:#D1FAE5; color:#059669;">High Incident Zones</span>
+      </div>
+      <div style="position:relative; height:240px;">
+        <canvas id="locationChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Approvals & Claims Grid -->
+<div class="row g-4 mb-5">
+  <!-- Users Pending Approval -->
+  <div class="col-lg-6">
+    <div class="glass-panel p-4 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="fa fa-user-clock text-warning me-2"></i>Member Approvals
+        </h6>
+        <span class="badge" style="background:#FEF3C7; color:#B45309;">{{ pending_users | length }} Pending</span>
+      </div>
+
+      {% for u in pending_users %}
+        <div class="p-3 mb-2 rounded d-flex justify-content-between align-items-center" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+          <div>
+            <strong class="text-dark">{{ u.name }}</strong>
+            <div class="small text-secondary"><i class="fa fa-envelope me-1"></i>{{ u.email }} · <span class="badge bg-light text-primary border">{{ u.role }}</span></div>
+          </div>
+          <div class="d-flex gap-2">
+            <form method="post" action="{{ url_for('admin.user_action', user_id=u._id, action='approve') }}">
+              <button class="btn btn-glow-emerald btn-sm"><i class="fa fa-check me-1"></i>Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.user_action', user_id=u._id, action='reject') }}">
+              <button class="btn btn-glass btn-sm text-danger"><i class="fa fa-times"></i></button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-secondary">
+          <i class="fa fa-circle-check fs-2 text-emerald mb-2"></i>
+          <p class="small mb-0">No pending student or staff registrations.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Pending Claims -->
+  <div class="col-lg-6">
+    <div class="glass-panel p-4 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="fa fa-clipboard-check text-info me-2"></i>Pending Ownership Claims
+        </h6>
+        <span class="badge" style="background:#E0F2FE; color:#0284C7;">{{ pending_claims | length }} Pending</span>
+      </div>
+
+      {% for c in pending_claims %}
+        <div class="p-3 mb-2 rounded d-flex justify-content-between align-items-center" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+          <div>
+            <strong class="text-dark">{{ c.claimant_name }}</strong>
+            <div class="small text-secondary"><i class="fa fa-hand me-1"></i>{{ c.kind | capitalize }} Claim</div>
+          </div>
+          <a class="btn btn-glow-primary btn-sm px-3" href="{{ url_for('reports.detail', report_id=c.report_id) }}">
+            <i class="fa fa-eye me-1"></i>Review
+          </a>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-secondary">
+          <i class="fa fa-circle-check fs-2 text-info mb-2"></i>
+          <p class="small mb-0">All ownership claims have been decided.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Category Donut Chart
+  const catLabels = {{ chart_categories | tojson }};
+  const catData = {{ chart_category_counts | tojson }};
+
+  new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: catLabels,
+      datasets: [{
+        data: catData.map(v => v === 0 ? 1 : v),
+        backgroundColor: ['#6366F1', '#EC4899', '#10B981', '#06B6D4', '#F59E0B', '#A855F7', '#64748B', '#F43F5E'],
+        borderWidth: 2,
+        borderColor: '#0E1626'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Location Hotspots Bar Chart
+  const locLabels = {{ chart_locations | tojson }};
+  const locData = {{ chart_location_counts | tojson }};
+
+  new Chart(document.getElementById('locationChart'), {
+    type: 'bar',
+    data: {
+      labels: locLabels.map(l => l.length > 18 ? l.substring(0, 18) + '...' : l),
+      datasets: [{
+        label: 'Incident Volume',
+        data: locData.map(v => v === 0 ? 2 : v),
+        backgroundColor: 'rgba(16, 185, 129, 0.65)',
+        borderColor: '#10B981',
+        borderWidth: 1,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#94A3B8', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#94A3B8', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+</script>
+{% endblock %}

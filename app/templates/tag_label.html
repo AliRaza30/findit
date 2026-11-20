@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Print QR Sticker · {{ tag.tag_code }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center my-4">
+  <div class="col-md-7 col-lg-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="{{ url_for('tags.my_tags') }}" class="btn btn-glass btn-sm">
+        <i class="fa fa-arrow-left me-1"></i>Back
+      </a>
+      <button class="btn btn-glow-primary btn-sm" onclick="window.print()">
+        <i class="fa fa-print me-1"></i>Print Sticker
+      </button>
+    </div>
+
+    <!-- Sticker Container -->
+    <div class="glass-panel p-4 text-center position-relative" style="background:#ffffff; color:#0F172A; border:4px dashed #6366F1; border-radius:18px;">
+      <div style="font-size:0.75rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#6366F1; margin-bottom:4px;">
+        FINDIT SMART CAMPUS TAG
+      </div>
+      <h4 class="fw-800 mb-1" style="color:#0F172A;">IF FOUND, PLEASE SCAN</h4>
+      <p class="small text-muted mb-3" style="color:#475569 !important;">Scan with phone camera to return to owner anonymously</p>
+
+      <div class="d-inline-block p-2 rounded mb-3" style="background:#fff; border:2px solid #0F172A;" id="sticker-qr"></div>
+
+      <div class="fw-bold font-monospace mb-1" style="font-size:1.1rem; color:#0F172A;">
+        {{ tag.tag_code }}
+      </div>
+      <div class="small fw-bold text-muted mb-2" style="color:#64748B !important;">
+        {{ tag.item_name }} · {{ university.name }}
+      </div>
+
+      {% if tag.reward_message %}
+        <div class="p-2 rounded mt-2" style="background:#FEF3C7; border:1px solid #F59E0B; font-size:0.78rem; font-weight:700; color:#B45309;">
+          <i class="fa fa-gift me-1"></i>{{ tag.reward_message }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="text-center mt-3 text-secondary small">
+      <i class="fa fa-scissors me-1"></i>Print and stick this label on your laptop, water bottle, phone case, or keychain.
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  new QRCode(document.getElementById("sticker-qr"), {
+    text: "{{ public_url }}",
+    width: 140,
+    height: 140,
+    colorDark: "#0F172A",
+    colorLight: "#FFFFFF",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+</script>
+{% endblock %}

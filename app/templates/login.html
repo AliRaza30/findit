@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Sign In · FindIt Campus Sentinel{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center align-items-center" style="min-height:75vh;">
+  <div class="col-md-7 col-lg-5">
+    
+    <div class="text-center mb-4">
+      <div style="width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg,#6366F1,#EC4899); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:1.6rem; margin-bottom:1rem; box-shadow:0 0 25px rgba(99,102,241,0.4);">
+        <i class="fa fa-lock"></i>
+      </div>
+      <h3 class="fw-800 text-dark mb-1">Welcome Back</h3>
+      <p class="text-secondary small">Access your university workspace on FindIt</p>
+    </div>
+
+    <!-- Hackathon Quick-Login Banner -->
+    <div class="glass-panel p-3 mb-3" style="border:1px dashed rgba(236,72,153,0.4); background:#FFF1F2;">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="small fw-bold text-dark"><i class="fa fa-bolt text-danger me-1"></i>Judge / Evaluator Demo Access</span>
+        <span class="badge" style="background:#EC4899; color:#fff; font-size:0.65rem;">1-Click</span>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('main.demo_login', role='student') }}" class="btn btn-glass btn-sm flex-grow-1" style="font-size:0.75rem;">
+          <i class="fa fa-user-graduate me-1 text-info"></i>Student
+        </a>
+        <a href="{{ url_for('main.demo_login', role='staff') }}" class="btn btn-glass btn-sm flex-grow-1" style="font-size:0.75rem;">
+          <i class="fa fa-user-shield me-1 text-success"></i>Security
+        </a>
+        <a href="{{ url_for('main.demo_login', role='admin') }}" class="btn btn-glass btn-sm flex-grow-1" style="font-size:0.75rem;">
+          <i class="fa fa-crown me-1 text-warning"></i>Admin
+        </a>
+      </div>
+    </div>
+
+    <div class="glass-panel p-4 p-md-5">
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-university text-primary"></i>University Campus
+          </label>
+          <select name="university" class="form-select-custom w-100" required>
+            <option value="">Select your university</option>
+            {% for u in universities %}
+              <option value="{{ u.slug }}" {{ 'selected' if form.get('university') == u.slug }}>{{ u.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-envelope text-info"></i>Email Address
+          </label>
+          <input type="email" name="email" class="form-control-custom w-100" value="{{ form.get('email', '') }}" placeholder="you@university.edu" required>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label-custom">
+            <i class="fa fa-key text-emerald"></i>Password
+          </label>
+          <input type="password" name="password" class="form-control-custom w-100" placeholder="••••••••" required>
+        </div>
+
+        <button class="btn btn-glow-primary w-100 py-3 fw-bold" style="font-size:1rem;">
+          <i class="fa fa-right-to-bracket me-2"></i>Sign In
+        </button>
+      </form>
+
+      <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-25" style="font-size:0.85rem;">
+        <span class="text-secondary">New to FindIt?</span>
+        <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none ms-1">Create Student Account</a>
+        <br>
+        <span class="text-secondary">Or</span>
+        <a href="{{ url_for('auth.register_university') }}" class="text-warning fw-bold text-decoration-none ms-1">Register University Campus</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

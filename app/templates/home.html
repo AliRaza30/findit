@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+{% if current_user %}
+<!-- ================= LOGGED IN CAMPUS DASHBOARD ================= -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge" style="background:rgba(99,102,241,0.2); color:#A5B4FC; border:1px solid rgba(99,102,241,0.4);">
+        <i class="fa fa-graduation-cap me-1"></i>{{ current_user.role | capitalize }} Workspace
+      </span>
+      <span class="text-secondary small">·</span>
+      <span class="text-secondary small"><i class="fa fa-university me-1"></i>{{ university.name }}</span>
+    </div>
+    <h2 class="fw-800 mb-0" style="font-size:2rem; letter-spacing:-0.5px;">
+      Welcome back, <span class="brand-gradient-text">{{ current_user.name.split()[0] }}</span> 👋
+    </h2>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-glow-rose px-3" href="{{ url_for('reports.new_report', type='lost') }}">
+      <i class="fa fa-circle-exclamation me-1"></i>I Lost Something
+    </a>
+    <a class="btn btn-glow-emerald px-3" href="{{ url_for('reports.new_report', type='found') }}">
+      <i class="fa fa-circle-check me-1"></i>I Found Something
+    </a>
+    <a class="btn btn-glass px-3" href="{{ url_for('reports.campus_map') }}">
+      <i class="fa fa-map-location-dot me-1 text-info"></i>Campus Map
+    </a>
+  </div>
+</div>
+
+<!-- Potential Smart Match Banner (if notifications exist) -->
+{% if unread_notifs %}
+  {% for n in unread_notifs %}
+    <div class="glass-panel p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2" style="border-left: 4px solid #10B981; background:#F0FDF4;">
+      <div class="d-flex align-items-center gap-3">
+        <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.2); display:flex; align-items:center; justify-content:center; color:#059669; font-size:1.2rem;">
+          <i class="fa fa-microchip"></i>
+        </div>
+        <div>
+          <h6 class="mb-0 fw-bold text-dark">{{ n.title }}</h6>
+          <p class="mb-0 small text-secondary">{{ n.message }}</p>
+        </div>
+      </div>
+      <a href="{{ n.link }}" class="btn btn-glow-emerald btn-sm px-3">
+        <i class="fa fa-eye me-1"></i>View Details
+      </a>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Bento Grid Stats -->
+<div class="row g-3 mb-5">
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#FFE4E6; color:#E11D48;">
+        <i class="fa fa-circle-exclamation"></i>
+      </div>
+      <div class="stat-value text-dark">{{ stats.lost }}</div>
+      <div class="stat-label">Active Lost Reports</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#D1FAE5; color:#059669;">
+        <i class="fa fa-circle-check"></i>
+      </div>
+      <div class="stat-value text-dark">{{ stats.found }}</div>
+      <div class="stat-label">Reported Found Items</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#EEF2FF; color:#4338CA;">
+        <i class="fa fa-check-double"></i>
+      </div>
+      <div class="stat-value text-dark">{{ stats.resolved }}</div>
+      <div class="stat-label">Safely Recovered</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card">
+      <div class="stat-icon" style="background:#E0F2FE; color:#0284C7;">
+        <i class="fa fa-shield-heart"></i>
+      </div>
+      <div class="stat-value" style="color:#0284C7;">{{ stats.recovery_rate }}%</div>
+      <div class="stat-label">Campus Recovery Rate</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Action Shortcuts -->
+<div class="row g-3 mb-5">
+  <div class="col-md-4">
+    <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="fa fa-qrcode fs-4 text-warning"></i>
+          <h6 class="fw-bold mb-0">Smart QR Tags</h6>
+        </div>
+        <p class="small text-secondary mb-3">Protect your laptop, ID, and keys with scannable FindIt tags that allow finders to contact you anonymously.</p>
+      </div>
+      <a href="{{ url_for('tags.my_tags') }}" class="btn btn-glass btn-sm w-100">
+        <i class="fa fa-tags me-1"></i>Manage My Tags
+      </a>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="fa fa-map-location-dot fs-4 text-info"></i>
+          <h6 class="fw-bold mb-0">Interactive Campus Map</h6>
+        </div>
+        <p class="small text-secondary mb-3">Explore real-time GPS locations of items lost and found across university lecture halls, cafeteria, and library.</p>
+      </div>
+      <a href="{{ url_for('reports.campus_map') }}" class="btn btn-glass btn-sm w-100">
+        <i class="fa fa-compass me-1"></i>Open Campus Map
+      </a>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="fa fa-headset fs-4 text-emerald"></i>
+          <h6 class="fw-bold mb-0">Campus Safety Desk</h6>
+        </div>
+        <p class="small text-secondary mb-3">{{ university.security_office or 'Central Security Post Room 104' }}. Contact: <strong class="text-white">{{ university.security_hotline or '+1 (617) 555-0199' }}</strong></p>
+      </div>
+      <a href="tel:{{ university.security_hotline }}" class="btn btn-glass btn-sm w-100">
+        <i class="fa fa-phone me-1"></i>Call Security Desk
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Reports Section -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="fw-bold mb-1">Live Campus <span class="brand-gradient-text">Activity</span></h4>
+    <p class="small text-secondary mb-0">Recently reported lost and found items on campus</p>
+  </div>
+  <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">
+    View All Items <i class="fa fa-arrow-right ms-1"></i>
+  </a>
+</div>
+
+<div class="row g-4 mb-5">
+  {% for r in recent %}
+    <div class="col-sm-6 col-lg-4">
+      <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="report-item-card">
+        <div class="report-item-image-wrap">
+          {% if r.image_url %}
+            <img src="{{ r.image_url }}" class="report-item-image" alt="{{ r.title }}">
+          {% else %}
+            <img src="https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=600&auto=format&fit=crop&q=80" class="report-item-image" alt="{{ r.title }}">
+          {% endif %}
+          <div class="report-item-overlay">
+            <span class="badge-{{ r.type }}"><i class="fa fa-{% if r.type == 'lost' %}search{% else %}circle-check{% endif %} me-1"></i>{{ r.type }}</span>
+            {% if r.reward %}<span class="badge bg-warning text-dark fw-bold"><i class="fa fa-gift me-1"></i>Reward</span>{% endif %}
+          </div>
+        </div>
+        <div class="report-item-content">
+          <div class="report-item-title">{{ r.title }}</div>
+          <div class="report-meta-row"><i class="fa fa-tag"></i><span>{{ r.category }}</span></div>
+          <div class="report-meta-row"><i class="fa fa-location-dot"></i><span>{{ r.location }}</span></div>
+          <div class="report-meta-row"><i class="fa fa-calendar"></i><span>{{ r.date }}</span></div>
+        </div>
+      </a>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="glass-panel text-center py-5">
+        <i class="fa fa-box-open fs-1 text-secondary mb-3"></i>
+        <h5 class="fw-bold">No active reports right now</h5>
+        <p class="small text-secondary mb-3">Your campus feed is clear. Post an item if you have lost or found something!</p>
+        <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm">Report an Item</a>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<!-- ================= PUBLIC HERO / VISITOR LANDING ================= -->
+<div class="text-center py-5 my-3 position-relative">
+  <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-4" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); color:#A5B4FC; font-size:0.85rem; font-weight:600;">
+    <i class="fa fa-sparkles text-warning"></i> Next-Generation Multi-Tenant Campus Sentinel System
+  </div>
+
+  <h1 class="fw-800 display-4 mb-3" style="letter-spacing:-1px; line-height:1.15;">
+    The Smartest University <br>
+    <span class="brand-gradient-text">Lost &amp; Found Network</span>
+  </h1>
+
+  <p class="lead text-secondary mx-auto mb-4" style="max-width:640px; font-size:1.15rem;">
+    Zero items left behind. FindIt combines multi-campus isolation, AI smart matching, printable missing posters, and QR Smart Tags to recover student belongings faster than ever.
+  </p>
+
+  <!-- Global Instant Campus Search Bar -->
+  <div class="mx-auto mb-4" style="max-width:580px;">
+    <form action="{{ url_for('main.universities_directory') }}" method="get" class="glass-panel p-2 d-flex align-items-center gap-2" style="box-shadow:0 10px 30px rgba(79,70,229,0.12); border-color:rgba(79,70,229,0.3);">
+      <i class="fa fa-magnifying-glass text-primary fs-5 ms-3"></i>
+      <input type="text" name="q" class="form-control border-0 bg-transparent text-dark shadow-none" placeholder="Find your university campus (e.g. Apex, Stanford, Oxford)...">
+      <button class="btn btn-glow-primary px-4 py-2" type="submit">
+        Find Campus
+      </button>
+    </form>
+  </div>
+
+  <div class="d-flex justify-content-center gap-3 flex-wrap mb-5">
+    <a class="btn btn-glow-primary px-4 py-2" href="{{ url_for('main.universities_directory') }}">
+      <i class="fa fa-compass me-2"></i>Explore University Portals
+    </a>
+    <a class="btn btn-glass px-4 py-2" href="{{ url_for('auth.register_university') }}">
+      <i class="fa fa-plus-circle me-2 text-warning"></i>Register Your Campus
+    </a>
+    <a class="btn btn-glass px-4 py-2" href="{{ url_for('main.demo_login', role='student') }}">
+      <i class="fa fa-play text-info me-2"></i>Live Demo (Judge Preview)
+    </a>
+  </div>
+</div>
+
+<!-- Live Global Statistics Bento Grid -->
+<div class="row g-3 mb-5">
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card text-center">
+      <div class="stat-value brand-gradient-text">{{ global_stats.universities_count }}+</div>
+      <div class="stat-label">Active University Campuses</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card text-center">
+      <div class="stat-value text-emerald">{{ global_stats.items_recovered }}+</div>
+      <div class="stat-label">Items Safely Returned</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card text-center">
+      <div class="stat-value text-info">{{ global_stats.active_reports }}</div>
+      <div class="stat-label">Open Active Reports</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card text-center">
+      <div class="stat-value" style="color:#A855F7;">{{ global_stats.average_recovery_rate }}%</div>
+      <div class="stat-label">Network Recovery Success</div>
+    </div>
+  </div>
+</div>
+
+<!-- International Hackathon Pillars -->
+<div class="mb-5">
+  <div class="text-center mb-4">
+    <h3 class="fw-bold">Why FindIt Outperforms <span class="brand-gradient-text">Traditional Systems</span></h3>
+    <p class="text-secondary small">Engineered specifically for complex modern higher-education campuses</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="glass-panel p-4 h-100">
+        <div style="width:52px; height:52px; border-radius:14px; background:rgba(99,102,241,0.15); display:flex; align-items:center; justify-content:center; color:#818CF8; font-size:1.5rem; margin-bottom:1.25rem;">
+          <i class="fa fa-brain"></i>
+        </div>
+        <h5 class="fw-bold mb-2">AI Smart Match Engine</h5>
+        <p class="text-secondary small mb-0">
+          Cross-examines lost and found submissions using multi-factor semantic matching, date proximity, campus coordinate distance, and categorical tag analysis to compute real-time match confidence scores.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="glass-panel p-4 h-100">
+        <div style="width:52px; height:52px; border-radius:14px; background:rgba(236,72,153,0.15); display:flex; align-items:center; justify-content:center; color:#F472B6; font-size:1.5rem; margin-bottom:1.25rem;">
+          <i class="fa fa-qrcode"></i>
+        </div>
+        <h5 class="fw-bold mb-2">FindIt Smart QR Tags</h5>
+        <p class="text-secondary small mb-0">
+          Students generate printable sticker tags for laptops, keys, and water bottles. When scanned by anyone's phone camera, it facilitates immediate anonymous recovery without exposing phone numbers.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="glass-panel p-4 h-100">
+        <div style="width:52px; height:52px; border-radius:14px; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center; color:#34D399; font-size:1.5rem; margin-bottom:1.25rem;">
+          <i class="fa fa-shield-check"></i>
+        </div>
+        <h5 class="fw-bold mb-2">Safe Verification &amp; Handover</h5>
+        <p class="text-secondary small mb-0">
+          Eliminates fraudulent claims with secret verification challenge questions, claimant proof submissions, and cryptographic Digital Handover Passes for campus security guard confirmation.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Spotlight Partner Campuses -->
+<div class="mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1">Partner University <span class="brand-gradient-text">Campuses</span></h4>
+      <p class="small text-secondary mb-0">Explore dedicated isolated workspaces registered on FindIt</p>
+    </div>
+    <a href="{{ url_for('main.universities_directory') }}" class="btn btn-glass btn-sm">
+      View All Campuses <i class="fa fa-arrow-right ms-1"></i>
+    </a>
+  </div>
+
+  <div class="row g-4">
+    {% for u in spotlight_unis %}
+      <div class="col-md-4">
+        <div class="glass-panel overflow-hidden h-100 d-flex flex-column justify-content-between">
+          <div style="height:120px; background-image:url('{{ u.cover_url }}'); background-size:cover; background-position:center; position:relative;">
+            <div style="position:absolute; bottom:-20px; left:20px; width:48px; height:48px; border-radius:12px; overflow:hidden; border:2px solid #0E1626; background:#fff;">
+              <img src="{{ u.logo_url }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ u.name }}">
+            </div>
+          </div>
+          <div class="p-4 pt-4 mt-2 d-flex flex-column flex-grow-1 justify-content-between">
+            <div>
+              <h6 class="fw-bold mb-1 text-dark">{{ u.name }}</h6>
+              <p class="small text-secondary mb-3"><i class="fa fa-location-dot me-1 text-primary"></i>{{ u.city or 'Global Campus' }}, {{ u.country or '' }}</p>
+              <div class="d-flex gap-2 mb-3">
+                <span class="badge" style="background:rgba(16,185,129,0.15); color:#34D399;"><i class="fa fa-chart-line me-1"></i>{{ u.recovery_rate }}% Recovery</span>
+                <span class="badge" style="background:rgba(99,102,241,0.15); color:#A5B4FC;">{{ u.verification_mode | replace('_', ' ') | capitalize }}</span>
+              </div>
+            </div>
+            <a href="{{ url_for('main.explore_university', slug=u.slug) }}" class="btn btn-glow-primary btn-sm w-100">
+              <i class="fa fa-door-open me-1"></i>Enter Campus Portal
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endif %}
+
+{% endblock %}

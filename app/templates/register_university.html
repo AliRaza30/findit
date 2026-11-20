@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Register University Campus · FindIt{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center my-4">
+  <div class="col-md-8 col-lg-7">
+    <div class="text-center mb-4">
+      <div style="width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg,#6366F1,#EC4899); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:1.6rem; margin-bottom:1rem; box-shadow:0 0 25px rgba(99,102,241,0.4);">
+        <i class="fa fa-university"></i>
+      </div>
+      <h3 class="fw-800 text-dark mb-1">Register University <span class="brand-gradient-text">Workspace</span></h3>
+      <p class="text-secondary small">Deploy an isolated, branded, AI-assisted lost and found hub for your institution.</p>
+    </div>
+
+    <div class="glass-panel p-4 p-md-5">
+      <form method="post" enctype="multipart/form-data">
+
+        <!-- University Details -->
+        <div class="mb-4">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(99,102,241,0.2); color:#A5B4FC; font-size:0.75rem;">Step 1: Campus Identity</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom">
+              <i class="fa fa-university text-primary"></i>Official University Name
+            </label>
+            <input name="university_name" class="form-control-custom w-100" value="{{ form.get('university_name', '') }}" placeholder="e.g. Cambridge Institute of Technology" required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label-custom">
+                <i class="fa fa-city text-info"></i>City
+              </label>
+              <input name="city" class="form-control-custom w-100" value="{{ form.get('city', '') }}" placeholder="e.g. Cambridge, MA">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">
+                <i class="fa fa-globe text-emerald"></i>Country
+              </label>
+              <input name="country" class="form-control-custom w-100" value="{{ form.get('country', '') }}" placeholder="e.g. United States">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom">
+              <i class="fa fa-shield-halved text-warning"></i>Student &amp; Staff Verification Mode
+            </label>
+            <select name="verification_mode" class="form-select-custom w-100" id="mode">
+              {% for key, label in modes.items() %}
+                <option value="{{ key }}" {{ 'selected' if form.get('verification_mode') == key }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3" id="domain-box">
+            <label class="form-label-custom">
+              <i class="fa fa-at text-info"></i>Required Campus Email Domain
+            </label>
+            <input name="email_domain" class="form-control-custom w-100" placeholder="e.g. cambridge.edu" value="{{ form.get('email_domain', '') }}">
+            <div class="text-dim small mt-1">Students must sign up with an email ending in @domain.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom">
+              <i class="fa fa-headset text-danger"></i>Campus Lost &amp; Found Hotline / Office
+            </label>
+            <input name="security_hotline" class="form-control-custom w-100" placeholder="e.g. +1 (617) 555-0199 or Room 104 Security Desk" value="{{ form.get('security_hotline', '') }}">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-image text-primary"></i>Campus Logo</label>
+              <input type="file" name="logo" accept="image/*" class="form-control-custom w-100">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-panorama text-info"></i>Cover Banner</label>
+              <input type="file" name="cover" accept="image/*" class="form-control-custom w-100">
+            </div>
+          </div>
+        </div>
+
+        <!-- Administrator Profile -->
+        <div class="mb-4 pt-3 border-top border-secondary border-opacity-25">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(16,185,129,0.2); color:#34D399; font-size:0.75rem;">Step 2: Head Administrator Account</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom">
+              <i class="fa fa-user-shield text-emerald"></i>Administrator Full Name
+            </label>
+            <input name="admin_name" class="form-control-custom w-100" value="{{ form.get('admin_name', '') }}" placeholder="e.g. Dr. Robert Vance" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom">
+              <i class="fa fa-envelope text-info"></i>Admin Email Address
+            </label>
+            <input type="email" name="admin_email" class="form-control-custom w-100" value="{{ form.get('admin_email', '') }}" placeholder="admin@cambridge.edu" required>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label-custom">
+              <i class="fa fa-key text-danger"></i>Master Admin Password <span class="text-dim fw-normal">(min 8 characters)</span>
+            </label>
+            <input type="password" name="admin_password" minlength="8" class="form-control-custom w-100" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <button class="btn btn-glow-primary w-100 py-3 fw-bold" style="font-size:1rem;">
+          <i class="fa fa-rocket me-2"></i>Launch Campus Workspace
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const mode = document.getElementById('mode'), box = document.getElementById('domain-box');
+  const sync = () => box.style.display = mode.value === 'email_domain' ? 'block' : 'none';
+  mode.addEventListener('change', sync); sync();
+</script>
+{% endblock %}

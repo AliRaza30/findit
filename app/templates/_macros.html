@@ -1,0 +1,31 @@
+{% macro report_card(r) %}
+<div class="col-sm-6 col-lg-4">
+  <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="report-card-link">
+    <div class="report-card">
+      {% if r.image_url %}
+        <img src="{{ r.image_url }}" class="report-thumb" alt="{{ r.title }}">
+      {% else %}
+        <div class="report-thumb-empty">
+          <i class="fa fa-image"></i>No Photo
+        </div>
+      {% endif %}
+      <div class="report-card-body">
+        <div class="d-flex gap-2 mb-2 flex-wrap">
+          <span class="badge badge-{{ r.type }}">
+            <i class="fa fa-{% if r.type == 'lost' %}search{% else %}check-circle{% endif %} me-1"></i>{{ r.type | upper }}
+          </span>
+          {% if r.status == 'resolved' %}
+            <span class="badge badge-resolved"><i class="fa fa-check me-1"></i>Resolved</span>
+          {% endif %}
+        </div>
+        <h6 class="mb-1" style="font-size:0.95rem; font-weight:600; color:#E2E8F0;">{{ r.title }}</h6>
+        <div class="small" style="color:#64748B;">
+          <i class="fa fa-tag me-1"></i>{{ r.category }} &nbsp;·&nbsp;
+          <i class="fa fa-map-marker-alt me-1"></i>{{ r.location }}
+          <br><i class="fa fa-calendar-alt me-1"></i>{{ r.date }}
+        </div>
+      </div>
+    </div>
+  </a>
+</div>
+{% endmacro %}

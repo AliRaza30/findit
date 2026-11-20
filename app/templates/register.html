@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Student / Staff Sign Up · FindIt{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center align-items-center my-4" style="min-height:75vh;">
+  <div class="col-md-7 col-lg-6">
+    <div class="text-center mb-4">
+      <div style="width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg,#6366F1,#EC4899); display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:1.6rem; margin-bottom:1rem; box-shadow:0 0 25px rgba(99,102,241,0.4);">
+        <i class="fa fa-graduation-cap"></i>
+      </div>
+      <h3 class="fw-800 text-dark mb-1">Create Campus Account</h3>
+      <p class="text-secondary small">Join your university's protected lost and found sentinel portal</p>
+    </div>
+
+    <div class="glass-panel p-4 p-md-5">
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-university text-primary"></i>Select Your Campus
+          </label>
+          <select name="university" class="form-select-custom w-100" required>
+            <option value="">Choose university workspace...</option>
+            {% for u in universities %}
+              <option value="{{ u.slug }}" {{ 'selected' if form.get('university') == u.slug }}>
+                {{ u.name }}{% if u.verification_mode == 'email_domain' %} (@{{ u.email_domain }} required){% elif u.verification_mode == 'admin_approval' %} (admin approval required){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-user text-info"></i>Full Name
+          </label>
+          <input name="name" class="form-control-custom w-100" value="{{ form.get('name', '') }}" placeholder="e.g. Alex Vance" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-envelope text-emerald"></i>University / Personal Email
+          </label>
+          <input type="email" name="email" class="form-control-custom w-100" value="{{ form.get('email', '') }}" placeholder="student@university.edu" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label-custom">
+              <i class="fa fa-phone text-warning"></i>Phone Number (Optional)
+            </label>
+            <input type="text" name="phone" class="form-control-custom w-100" value="{{ form.get('phone', '') }}" placeholder="+1 555-0199">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom">
+              <i class="fa fa-id-badge text-primary"></i>Campus Affiliation
+            </label>
+            <select name="role" class="form-select-custom w-100">
+              <option value="student">Student</option>
+              <option value="staff" {{ 'selected' if form.get('role') == 'staff' }}>Faculty / Staff / Campus Security</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label-custom">
+            <i class="fa fa-lock text-danger"></i>Password <span class="text-dim fw-normal">(min 8 characters)</span>
+          </label>
+          <input type="password" name="password" minlength="8" class="form-control-custom w-100" placeholder="••••••••" required>
+        </div>
+
+        <button class="btn btn-glow-primary w-100 py-3 fw-bold" style="font-size:1rem;">
+          <i class="fa fa-user-plus me-2"></i>Register Account
+        </button>
+      </form>
+
+      <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-25" style="font-size:0.85rem;">
+        <span class="text-secondary">Already registered?</span>
+        <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none ms-1">Sign In</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

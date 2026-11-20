@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Notifications · FindIt{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-800 text-dark mb-1">Campus <span class="brand-gradient-text">Notifications</span></h3>
+    <p class="text-secondary small mb-0">Live updates regarding your lost and found claims, matches, and system alerts.</p>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="glass-panel p-4">
+      {% for n in notifications %}
+        <div class="p-3 mb-3 rounded d-flex justify-content-between align-items-center gap-3" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:42px; height:42px; border-radius:10px; background:#EEF2FF; display:flex; align-items:center; justify-content:center; color:#4F46E5; font-size:1.2rem;">
+              <i class="fa fa-{% if n.type == 'match' %}microchip{% elif n.type == 'claim' %}clipboard-list{% elif n.type == 'tag_scanned' %}qrcode{% else %}bell{% endif %}"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold text-dark mb-1">{{ n.title }}</h6>
+              <p class="small text-secondary mb-1">{{ n.message }}</p>
+              <span class="text-dim small" style="font-size:0.75rem;">{{ n.created_at.strftime('%b %d, %Y %H:%M') if n.created_at else '' }}</span>
+            </div>
+          </div>
+          {% if n.link and n.link != '#' %}
+            <a href="{{ n.link }}" class="btn btn-glass btn-sm px-3">
+              <i class="fa fa-arrow-right"></i>
+            </a>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="text-center py-5 text-secondary">
+          <i class="fa fa-bell-slash fs-1 mb-3"></i>
+          <h6 class="fw-bold text-dark">No notifications yet</h6>
+          <p class="small mb-0">You're all caught up! You will be notified when matches or claim decisions occur.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Post New Report · {{ university.name }}{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center my-4">
+  <div class="col-md-8 col-lg-7">
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); color:#A5B4FC; font-size:0.8rem; font-weight:600;">
+        <i class="fa fa-university me-1"></i>{{ university.name }} Workspace
+      </div>
+      <h3 class="fw-800 text-dark mb-1">Publish Campus <span class="brand-gradient-text">Incident Report</span></h3>
+      <p class="text-secondary small">Your report will be automatically checked against opposite cases via AI smart matching.</p>
+    </div>
+
+    <div class="glass-panel p-4 p-md-5">
+      <form method="post" enctype="multipart/form-data">
+
+        <!-- Lost vs Found Type Switcher -->
+        <div class="mb-4">
+          <label class="form-label-custom mb-2">
+            <i class="fa fa-layer-group text-primary"></i>Report Classification
+          </label>
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="radio" class="btn-check" name="type" id="t-lost" value="lost" {{ 'checked' if form.get('type', 'lost') == 'lost' }} onchange="toggleSecurityQ()">
+              <label class="btn btn-outline-danger w-100 py-3 fw-bold d-flex flex-column align-items-center gap-1" for="t-lost" style="border-radius:var(--radius-md);">
+                <i class="fa fa-circle-exclamation fs-4"></i>
+                <span>I Lost Something</span>
+                <span class="text-dim" style="font-size:0.7rem; font-weight:400;">Notify the campus to keep a lookout</span>
+              </label>
+            </div>
+            <div class="col-6">
+              <input type="radio" class="btn-check" name="type" id="t-found" value="found" {{ 'checked' if form.get('type') == 'found' }} onchange="toggleSecurityQ()">
+              <label class="btn btn-outline-success w-100 py-3 fw-bold d-flex flex-column align-items-center gap-1" for="t-found" style="border-radius:var(--radius-md);">
+                <i class="fa fa-circle-check fs-4"></i>
+                <span>I Found Something</span>
+                <span class="text-dim" style="font-size:0.7rem; font-weight:400;">Help reunite it with its rightful owner</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Title -->
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-heading text-info"></i>Item Title / Model
+          </label>
+          <input name="title" class="form-control-custom w-100" placeholder="e.g. Space Grey Apple MacBook Pro 14 M2 or Brown Fossil Wallet" value="{{ form.get('title', '') }}" required>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-align-left text-primary"></i>Description &amp; Identifying Details
+          </label>
+          <textarea name="description" rows="3" class="form-control-custom w-100" placeholder="Color, brand, key marks, case, contents, stickers, or specific circumstances...">{{ form.get('description', '') }}</textarea>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <!-- Category -->
+          <div class="col-md-6">
+            <label class="form-label-custom">
+              <i class="fa fa-tag text-emerald"></i>Category
+            </label>
+            <select name="category" class="form-select-custom w-100" required>
+              <option value="">Select Category</option>
+              {% for c in university.categories %}
+                <option value="{{ c }}" {{ 'selected' if form.get('category') == c }}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Campus Location -->
+          <div class="col-md-6">
+            <label class="form-label-custom">
+              <i class="fa fa-location-dot text-danger"></i>Campus Location
+            </label>
+            <select name="location" class="form-select-custom w-100" required>
+              <option value="">Select Location</option>
+              {% for l in university.locations %}
+                <option value="{{ l }}" {{ 'selected' if form.get('location') == l }}>{{ l }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <!-- Date -->
+          <div class="col-md-6">
+            <label class="form-label-custom">
+              <i class="fa fa-calendar text-info"></i>Date of Incident
+            </label>
+            <input type="date" name="date" max="{{ today }}" class="form-control-custom w-100" value="{{ form.get('date', today) }}" required>
+          </div>
+
+          <!-- Reward (Optional for Lost items) -->
+          <div class="col-md-6" id="reward-field">
+            <label class="form-label-custom">
+              <i class="fa fa-gift text-warning"></i>Reward Offered (Optional)
+            </label>
+            <input type="text" name="reward" class="form-control-custom w-100" placeholder="e.g. $50 Cash Reward or Free Lunch" value="{{ form.get('reward', '') }}">
+          </div>
+        </div>
+
+        <!-- Security Question (Optional for Found items) -->
+        <div class="mb-3" id="security-q-field" style="display:none;">
+          <label class="form-label-custom text-warning">
+            <i class="fa fa-shield-halved"></i>Security Challenge Question (Anti-Fraud)
+          </label>
+          <input type="text" name="security_question" class="form-control-custom w-100" placeholder="e.g. What sticker is on the back? or What wallpaper is on the lockscreen?" value="{{ form.get('security_question', '') }}">
+          <div class="text-dim small mt-1">Claimants will need to answer this question to verify legitimate ownership.</div>
+        </div>
+
+        <!-- Image Upload -->
+        <div class="mb-4">
+          <label class="form-label-custom">
+            <i class="fa fa-camera text-primary"></i>Photo Upload <span class="text-dim fw-normal">(Optional, PNG/JPG/WEBP)</span>
+          </label>
+          <input type="file" name="image" accept="image/*" class="form-control-custom w-100">
+        </div>
+
+        <button class="btn btn-glow-primary w-100 py-3 fw-bold" style="font-size:1rem;">
+          <i class="fa fa-paper-plane me-2"></i>Publish to Campus Portal
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function toggleSecurityQ() {
+    const isFound = document.getElementById('t-found').checked;
+    document.getElementById('security-q-field').style.display = isFound ? 'block' : 'none';
+  }
+  document.addEventListener('DOMContentLoaded', toggleSecurityQ);
+</script>
+{% endblock %}

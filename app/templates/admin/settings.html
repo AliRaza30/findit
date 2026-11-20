@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Campus Settings · Admin{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+
+<div class="row justify-content-center">
+  <div class="col-md-9 col-lg-7">
+    <div class="mb-4">
+      <h3 class="fw-800 text-white mb-1">Campus <span class="brand-gradient-text">Settings</span></h3>
+      <p class="text-secondary small mb-0">Configure your university's security policies, verification requirements, and portal appearance.</p>
+    </div>
+
+    <div class="glass-panel p-4 p-md-5">
+      <form method="post" enctype="multipart/form-data">
+
+        <div class="mb-3">
+          <label class="form-label-custom"><i class="fa fa-university text-primary"></i>University Name</label>
+          <input name="name" class="form-control-custom w-100" value="{{ university.name }}" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label-custom"><i class="fa fa-city text-info"></i>Campus City</label>
+            <input name="city" class="form-control-custom w-100" value="{{ university.city or '' }}" placeholder="e.g. Boston, MA">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom"><i class="fa fa-globe text-emerald"></i>Country</label>
+            <input name="country" class="form-control-custom w-100" value="{{ university.country or '' }}" placeholder="e.g. United States">
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label-custom"><i class="fa fa-phone text-warning"></i>Security Hotline</label>
+            <input name="security_hotline" class="form-control-custom w-100" value="{{ university.security_hotline or '' }}" placeholder="e.g. +1 555-0199">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom"><i class="fa fa-building-shield text-danger"></i>Lost &amp; Found Central Desk</label>
+            <input name="security_office" class="form-control-custom w-100" value="{{ university.security_office or '' }}" placeholder="e.g. Student Center Room 104">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom"><i class="fa fa-shield-halved text-primary"></i>Verification Mode</label>
+          <select name="verification_mode" class="form-select-custom w-100" id="mode">
+            {% for key, label in modes.items() %}
+              <option value="{{ key }}" {{ 'selected' if university.verification_mode == key }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4" id="domain-box">
+          <label class="form-label-custom"><i class="fa fa-at text-info"></i>Restricted Email Domain</label>
+          <input name="email_domain" class="form-control-custom w-100" placeholder="domain.edu" value="{{ university.email_domain or '' }}">
+          <div class="text-dim small mt-1">
+            Applies to "University email domain required" mode.
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label-custom"><i class="fa fa-image text-primary"></i>Campus Logo</label>
+            {% if university.logo_url %}
+              <div class="mb-2">
+                <img src="{{ university.logo_url }}" alt="Logo" style="height:44px; border-radius:10px; border:1px solid var(--border-glass);">
+              </div>
+            {% endif %}
+            <input type="file" name="logo" accept="image/*" class="form-control-custom w-100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label-custom"><i class="fa fa-panorama text-info"></i>Cover Banner</label>
+            {% if university.cover_url %}
+              <div class="mb-2">
+                <img src="{{ university.cover_url }}" alt="Cover" style="height:44px; width:100px; object-fit:cover; border-radius:10px; border:1px solid var(--border-glass);">
+              </div>
+            {% endif %}
+            <input type="file" name="cover" accept="image/*" class="form-control-custom w-100">
+          </div>
+        </div>
+
+        <button class="btn btn-glow-primary px-4 py-2">
+          <i class="fa fa-save me-2"></i>Save Campus Configuration
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const mode = document.getElementById('mode'), box = document.getElementById('domain-box');
+  const sync = () => box.style.display = mode.value === 'email_domain' ? 'block' : 'none';
+  mode.addEventListener('change', sync); sync();
+</script>
+{% endblock %}

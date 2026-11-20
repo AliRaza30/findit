@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}{{ report.title }} · Lost &amp; Found{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb / Back button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">
+    <i class="fa fa-arrow-left me-1"></i>Back to Browse
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('reports.missing_poster', report_id=report._id) }}" target="_blank" class="btn btn-glass btn-sm" title="Generate Printable Notice Board Poster">
+      <i class="fa fa-print me-1 text-warning"></i>Print Missing Poster
+    </a>
+    <a href="{{ url_for('reports.campus_map') }}" class="btn btn-glass btn-sm">
+      <i class="fa fa-map-location-dot me-1 text-info"></i>Campus Map
+    </a>
+  </div>
+</div>
+
+<div class="row g-4 mb-5">
+  <!-- Left Column: Item Overview -->
+  <div class="col-lg-7">
+    <div class="glass-panel overflow-hidden">
+      <!-- Item Media -->
+      <div style="height: 380px; width:100%; position:relative; background:#0B111E;">
+        {% if report.image_url %}
+          <img src="{{ report.image_url }}" style="width:100%; height:100%; object-fit:contain; background:#0F172A;" alt="{{ report.title }}">
+        {% else %}
+          <img src="{{ report.fallback_image }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ report.title }}">
+        {% endif %}
+
+        <div style="position:absolute; top:16px; left:16px; display:flex; gap:8px;">
+          <span class="badge-{{ report.type }}">
+            <i class="fa fa-{% if report.type == 'lost' %}magnifying-glass{% else %}circle-check{% endif %} me-1"></i>{{ report.type }}
+          </span>
+          {% if report.status == 'resolved' %}
+            <span class="badge-resolved"><i class="fa fa-check-double me-1"></i>Resolved / Recovered</span>
+          {% else %}
+            <span class="badge" style="background:rgba(99,102,241,0.2); color:#A5B4FC; border:1px solid rgba(99,102,241,0.3); font-weight:700;">Open Case</span>
+          {% endif %}
+        </div>
+
+        {% if report.reward %}
+          <div style="position:absolute; top:16px; right:16px;">
+            <span class="badge bg-warning text-dark fw-bold px-3 py-2 shadow" style="font-size:0.85rem;">
+              <i class="fa fa-gift me-1"></i>{{ report.reward }}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Item Information -->
+      <div class="p-4">
+        <h3 class="fw-bold text-dark mb-2">{{ report.title }}</h3>
+        <p class="text-secondary" style="font-size:1rem; line-height:1.7;">
+          {{ report.description or 'No extra description provided.' }}
+        </p>
+
+        {% if report.security_question %}
+          <div class="p-3 rounded mb-4" style="background:#FFF1F2; border:1px solid #FECDD3;">
+            <div class="small fw-bold text-dark mb-1"><i class="fa fa-shield-halved text-danger me-1"></i>Security Verification Question</div>
+            <div class="small text-secondary">{{ report.security_question }}</div>
+          </div>
+        {% endif %}
+
+        <!-- Metadata Grid -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6">
+            <div class="p-3 rounded" style="background:#F8FAFC; border:1px solid var(--border-glass);">
+              <div class="text-dim small" style="font-size:0.75rem; text-transform:uppercase;"><i class="fa fa-tag me-1 text-primary"></i>Category</div>
+              <div class="fw-bold text-dark mt-1">{{ report.category }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 rounded" style="background:#F8FAFC; border:1px solid var(--border-glass);">
+              <div class="text-dim small" style="font-size:0.75rem; text-transform:uppercase;"><i class="fa fa-location-dot me-1 text-danger"></i>Location</div>
+              <div class="fw-bold text-dark mt-1">{{ report.location }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 rounded" style="background:#F8FAFC; border:1px solid var(--border-glass);">
+              <div class="text-dim small" style="font-size:0.75rem; text-transform:uppercase;"><i class="fa fa-calendar me-1 text-info"></i>Date Reported</div>
+              <div class="fw-bold text-dark mt-1">{{ report.date }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 rounded" style="background:#F8FAFC; border:1px solid var(--border-glass);">
+              <div class="text-dim small" style="font-size:0.75rem; text-transform:uppercase;"><i class="fa fa-user me-1 text-success"></i>Reporter</div>
+              <div class="fw-bold text-dark mt-1">{{ report.reporter_name }}</div>
+            </div>
+          </div>
+        </div>
+
+        {% if can_manage and report.status == 'open' %}
+          <div class="d-flex gap-2">
+            <form method="post" action="{{ url_for('reports.resolve', report_id=report._id) }}">
+              <button class="btn btn-glow-emerald btn-sm px-4">
+                <i class="fa fa-circle-check me-2"></i>Mark as Safely Recovered
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: AI Smart Matches & Claims Workflow -->
+  <div class="col-lg-5">
+
+    <!-- 1. AI Smart Matches Section -->
+    {% if matches %}
+      <div class="glass-panel p-4 mb-4" style="border-color:#A7F3D0; background:#F0FDF4;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:32px; height:32px; border-radius:8px; background:rgba(16,185,129,0.2); display:flex; align-items:center; justify-content:center; color:#059669;">
+              <i class="fa fa-microchip"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-0 text-dark">AI Smart Matches</h6>
+              <div class="text-dim small" style="font-size:0.72rem;">Automated Multi-Factor Correlation</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#D1FAE5; color:#059669;">{{ matches | length }} Potential</span>
+        </div>
+
+        {% for m in matches %}
+          <div class="p-3 mb-3 rounded" style="background:#FFFFFF; border:1px solid #A7F3D0;">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="badge-match-high">
+                <i class="fa fa-bolt me-1"></i>{{ m.match_info.percentage }}% Match Score
+              </span>
+              <span class="small text-secondary">{{ m.date }}</span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">{{ m.title }}</h6>
+            <div class="small text-secondary mb-2">
+              <i class="fa fa-location-dot me-1 text-primary"></i>{{ m.location }}
+            </div>
+            <!-- Match Reason Pills -->
+            <div class="d-flex gap-1 flex-wrap mb-3">
+              {% for reason in m.match_info.reasons %}
+                <span class="badge" style="background:#F1F5F9; color:#334155; font-size:0.68rem; font-weight:600;">
+                  <i class="fa fa-check text-emerald me-1"></i>{{ reason }}
+                </span>
+              {% endfor %}
+            </div>
+            <a href="{{ url_for('reports.detail', report_id=m._id) }}" class="btn btn-glow-emerald btn-sm w-100">
+              <i class="fa fa-eye me-1"></i>Inspect Matched Report
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- 2. Claimant Form (For regular users on open reports) -->
+    {% if not can_manage and report.status == 'open' %}
+      <div class="glass-panel p-4 mb-4">
+        {% if my_claim %}
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fa fa-clipboard-check text-emerald fs-4"></i>
+            <div>
+              <h6 class="fw-bold text-dark mb-0">Your Claim is Under Review</h6>
+              <span class="badge badge-{{ my_claim.status }} mt-1">{{ my_claim.status | capitalize }}</span>
+            </div>
+          </div>
+          <p class="small text-secondary mb-3">{{ my_claim.message }}</p>
+          {% if my_claim.status == 'approved' %}
+            <a href="{{ url_for('reports.handover_pass', report_id=report._id) }}" class="btn btn-glow-emerald w-100">
+              <i class="fa fa-qrcode me-2"></i>Open Digital Handover Pass
+            </a>
+          {% endif %}
+        {% else %}
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fa fa-hand-holding-heart text-primary fs-4"></i>
+            <div>
+              <h6 class="fw-bold text-dark mb-0">
+                {{ 'This Belongs to Me' if report.type == 'found' else 'I Found This Item' }}
+              </h6>
+              <p class="small text-secondary mb-0">Submit a claim to initiate safe campus recovery.</p>
+            </div>
+          </div>
+
+          {% if not current_user %}
+            <div class="p-3 rounded text-center" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
+              <p class="small text-secondary mb-3">You must be logged in to file a verified claim on this item.</p>
+              <a href="{{ url_for('auth.login') }}" class="btn btn-glow-primary btn-sm">Log In to Claim</a>
+            </div>
+          {% else %}
+            <form method="post" action="{{ url_for('reports.claim', report_id=report._id) }}">
+              {% if report.security_question %}
+                <div class="mb-3">
+                  <label class="form-label-custom text-warning">
+                    <i class="fa fa-key"></i>Security Challenge Answer
+                  </label>
+                  <input type="text" name="security_answer" class="form-control-custom w-100" placeholder="Answer the reporter's verification question..." required>
+                </div>
+              {% endif %}
+
+              <div class="mb-3">
+                <label class="form-label-custom">
+                  <i class="fa fa-phone"></i>Contact Phone / Telegram (Optional)
+                </label>
+                <input type="text" name="contact_phone" class="form-control-custom w-100" placeholder="e.g. +1 555-0192 or @username">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label-custom">
+                  <i class="fa fa-shield"></i>Proof of Ownership / Details
+                </label>
+                <textarea name="message" rows="3" class="form-control-custom w-100" minlength="8" required
+                  placeholder="{{ 'Describe unique markings, contents, or circumstances confirming this is yours...' if report.type == 'found' else 'Where and when did you locate it? How can the owner recover it?' }}"></textarea>
+              </div>
+
+              <button class="btn btn-glow-primary w-100 py-2">
+                <i class="fa fa-paper-plane me-2"></i>Submit Official Claim
+              </button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- 3. Claims Management Section (For report owners & campus admins) -->
+    {% if can_manage %}
+      <div class="glass-panel p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h6 class="fw-bold text-dark mb-0">
+            <i class="fa fa-clipboard-list text-primary me-2"></i>Incoming Claims
+          </h6>
+          <span class="badge" style="background:#EEF2FF; color:#4338CA;">{{ claims | length }} Claims</span>
+        </div>
+
+        {% for c in claims %}
+          <div class="p-3 mb-3 rounded" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <strong class="text-dark">{{ c.claimant_name }}</strong>
+                <div class="small text-secondary">{{ c.claimant_email }}</div>
+                {% if c.claimant_phone %}<div class="small text-info"><i class="fa fa-phone me-1"></i>{{ c.claimant_phone }}</div>{% endif %}
+              </div>
+              <span class="badge badge-{{ c.status }}">{{ c.status | capitalize }}</span>
+            </div>
+
+            <div class="p-2 rounded mb-2" style="background:#FFFFFF; border:1px solid #E2E8F0; font-size:0.85rem; color:#334155;">
+              {{ c.message }}
+            </div>
+
+            {% if c.security_answer %}
+              <div class="small mb-3" style="color:#FBBF24;">
+                <i class="fa fa-key me-1"></i><strong>Security Answer:</strong> {{ c.security_answer }}
+              </div>
+            {% endif %}
+
+            {% if c.status == 'pending' and report.status == 'open' %}
+              <div class="d-flex gap-2">
+                <form method="post" action="{{ url_for('reports.decide_claim', claim_id=c._id) }}" class="flex-grow-1">
+                  <input type="hidden" name="decision" value="approved">
+                  <button class="btn btn-glow-emerald btn-sm w-100">
+                    <i class="fa fa-check me-1"></i>Approve &amp; Issue Pass
+                  </button>
+                </form>
+                <form method="post" action="{{ url_for('reports.decide_claim', claim_id=c._id) }}">
+                  <input type="hidden" name="decision" value="rejected">
+                  <button class="btn btn-glass btn-sm text-danger" title="Reject Claim">
+                    <i class="fa fa-times"></i>
+                  </button>
+                </form>
+              </div>
+            {% elif c.status == 'approved' %}
+              <a href="{{ url_for('reports.handover_pass', report_id=report._id) }}" class="btn btn-glass btn-sm w-100 text-emerald">
+                <i class="fa fa-qrcode me-1"></i>View Issued Handover Pass
+              </a>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-secondary">
+            <i class="fa fa-inbox fs-2 mb-2"></i>
+            <p class="small mb-0">No claims submitted yet for this item.</p>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

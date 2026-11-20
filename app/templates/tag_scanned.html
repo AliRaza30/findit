@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}You Found an Item · FindIt Smart Tag{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center my-4">
+  <div class="col-md-7 col-lg-5">
+    <div class="text-center mb-4">
+      <div style="width:60px; height:60px; border-radius:18px; background:rgba(16,185,129,0.2); display:inline-flex; align-items:center; justify-content:center; color:#34D399; font-size:1.8rem; margin-bottom:1rem; box-shadow:0 0 25px rgba(16,185,129,0.3);">
+        <i class="fa fa-hand-holding-heart"></i>
+      </div>
+      <h3 class="fw-800 text-white mb-1">You Found a Student's Item!</h3>
+      <p class="text-secondary small mb-0">This possession belongs to a member of <strong>{{ university.name if university else 'our campus' }}</strong>.</p>
+    </div>
+
+    <div class="glass-panel p-4 mb-4">
+      <div class="text-center pb-3 border-bottom border-secondary border-opacity-25 mb-3">
+        <span class="badge" style="background:rgba(99,102,241,0.2); color:#A5B4FC; font-family:monospace;">{{ tag.tag_code }}</span>
+        <h5 class="fw-bold text-white mt-2 mb-1">{{ tag.item_name }}</h5>
+        <div class="small text-secondary"><i class="fa fa-tag me-1 text-primary"></i>{{ tag.category or 'Personal Item' }}</div>
+      </div>
+
+      {% if tag.reward_message %}
+        <div class="p-3 rounded mb-3" style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); color:#FCD34D;">
+          <div class="fw-bold small mb-1"><i class="fa fa-gift me-1"></i>Owner Reward Message:</div>
+          <div class="small">{{ tag.reward_message }}</div>
+        </div>
+      {% endif %}
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-user"></i>Your Name (Optional)
+          </label>
+          <input type="text" name="finder_name" class="form-control-custom w-100" placeholder="e.g. Fellow Student or Library Staff">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-location-dot"></i>Where is the item currently located?
+          </label>
+          <input type="text" name="location_found" class="form-control-custom w-100" placeholder="e.g. Left with Library Front Desk / Locker #3" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label-custom">
+            <i class="fa fa-comment-dots"></i>Message for the Owner
+          </label>
+          <textarea name="message" rows="3" class="form-control-custom w-100" required placeholder="Let them know where they can collect it or how to contact you..."></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label-custom">
+            <i class="fa fa-envelope"></i>Your Email / Phone (Optional)
+          </label>
+          <input type="text" name="finder_contact" class="form-control-custom w-100" placeholder="So the owner can thank you or coordinate pickup">
+        </div>
+
+        <button class="btn btn-glow-emerald w-100 py-2">
+          <i class="fa fa-paper-plane me-2"></i>Send Anonymous Notification to Owner
+        </button>
+      </form>
+    </div>
+
+    <!-- Security Office Alternative -->
+    <div class="glass-panel p-3 text-center">
+      <div class="small text-secondary">
+        Prefer to drop it off in person? Hand it over to:
+        <br><strong class="text-white">{{ university.security_office if university else 'Campus Lost & Found Desk' }}</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

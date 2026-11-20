@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Campus Map · {{ active_uni.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .custom-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(0,0,0,0.8);
+    transition: transform 0.2s;
+  }
+  .pin-lost {
+    background: #F43F5E;
+    box-shadow: 0 0 16px #F43F5E;
+    animation: pulse-red 2s infinite;
+  }
+  .pin-found {
+    background: #10B981;
+    box-shadow: 0 0 16px #10B981;
+    animation: pulse-green 2s infinite;
+  }
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 10px #F43F5E; }
+    50% { box-shadow: 0 0 25px #F43F5E; }
+  }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 10px #10B981; }
+    50% { box-shadow: 0 0 25px #10B981; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="campus-pill"><span class="dot"></span>{{ active_uni.name }}</span>
+      <span class="text-secondary small">· Geospatial Incident Tracking</span>
+    </div>
+    <h2 class="fw-800 mb-0" style="font-size:2.2rem; letter-spacing:-0.5px;">
+      Interactive Campus <span class="brand-gradient-text">Map</span>
+    </h2>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass px-3">
+      <i class="fa fa-table-cells me-1"></i>Switch to Grid View
+    </a>
+    <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose px-3">
+      <i class="fa fa-plus me-1"></i>Report Incident
+    </a>
+  </div>
+</div>
+
+<div class="row g-4 mb-5">
+  <!-- Interactive Map Canvas -->
+  <div class="col-lg-9">
+    <div class="glass-panel p-2 position-relative">
+      <div id="campus-leaflet-map"></div>
+      
+      <!-- Floating Legend -->
+      <div class="position-absolute bottom-0 start-0 m-4 p-3 glass-panel d-none d-sm-flex align-items-center gap-4" style="z-index: 1000; background:rgba(255,255,255,0.95); box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:12px; height:12px; border-radius:50%; background:#F43F5E; box-shadow:0 0 8px #F43F5E;"></span>
+          <span class="small text-dark fw-bold">Lost Item</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:12px; height:12px; border-radius:50%; background:#10B981; box-shadow:0 0 8px #10B981;"></span>
+          <span class="small text-dark fw-bold">Found Item</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span style="width:12px; height:12px; border-radius:50%; background:#0284C7; box-shadow:0 0 8px #0284C7;"></span>
+          <span class="small text-dark fw-bold">Security Office</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar: Incident List on Map -->
+  <div class="col-lg-3">
+    <div class="glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+      <div>
+        <h6 class="fw-bold mb-3 d-flex align-items-center justify-content-between">
+          <span>Active Map Markers</span>
+          <span class="badge" style="background:#EEF2FF; color:#4338CA;">{{ map_pins | length }} Pins</span>
+        </h6>
+
+        <div style="max-height: 440px; overflow-y: auto;" class="pe-1">
+          {% for pin in map_pins %}
+            <div class="p-2 mb-2 rounded" style="background:#F8FAFC; border:1px solid #E2E8F0; cursor:pointer;" onclick="focusMarker({{ pin.lat }}, {{ pin.lng }})">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge-{{ pin.type }}" style="font-size:0.65rem; padding:0.15rem 0.45rem;">{{ pin.type }}</span>
+                <span class="small fw-bold text-dark text-truncate">{{ pin.title }}</span>
+              </div>
+              <div class="small text-secondary" style="font-size:0.75rem;">
+                <i class="fa fa-location-dot me-1 text-primary"></i>{{ pin.location }}
+              </div>
+            </div>
+          {% else %}
+            <p class="small text-secondary">No mapped pins available yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="pt-3 border-top border-slate-200 mt-3">
+        <div class="small text-secondary mb-2">
+          <i class="fa fa-shield-halved text-emerald me-1"></i>Campus Security Lost &amp; Found Central Desk is open 24/7.
+        </div>
+        <a href="tel:{{ active_uni.security_hotline }}" class="btn btn-glass btn-sm w-100">
+          <i class="fa fa-phone me-1"></i>{{ active_uni.security_hotline or 'Call Security Desk' }}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const defaultCenter = {{ default_center | tojson }};
+  const pinsData = {{ map_pins | tojson }};
+
+  const map = L.map('campus-leaflet-map', {
+    center: defaultCenter,
+    zoom: 16,
+    zoomControl: true
+  });
+
+  // Dark Map Tiles (CartoDB Dark Matter)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap',
+    maxZoom: 19
+  }).addTo(map);
+
+  const markers = {};
+
+  pinsData.forEach(pin => {
+    const isLost = pin.type === 'lost';
+    const pinClass = isLost ? 'pin-lost' : 'pin-found';
+    const iconName = isLost ? 'fa-magnifying-glass' : 'fa-check';
+
+    const customIcon = L.divIcon({
+      className: 'custom-pin-wrap',
+      html: `<div class="custom-pin ${pinClass}" style="width:34px; height:34px;"><i class="fa ${iconName}" style="font-size:14px;"></i></div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
+    });
+
+    const popupHtml = `
+      <div style="min-width: 220px; font-family:'Plus Jakarta Sans',sans-serif;">
+        <img src="${pin.image_url}" style="width:100%; height:110px; object-fit:cover; border-radius:10px; margin-bottom:10px;" alt="">
+        <div style="margin-bottom:6px;">
+          <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:999px; background:${isLost ? '#F43F5E' : '#10B981'}; color:#fff;">
+            ${pin.type.toUpperCase()}
+          </span>
+          <span style="font-size:0.75rem; color:#94A3B8; margin-left:6px;">${pin.date}</span>
+        </div>
+        <h6 style="font-weight:700; color:#fff; font-size:0.95rem; margin-bottom:4px;">${pin.title}</h6>
+        <div style="font-size:0.8rem; color:#94A3B8; margin-bottom:12px;">
+          <i class="fa fa-location-dot" style="color:#6366F1; margin-right:4px;"></i>${pin.location}
+        </div>
+        <a href="/reports/${pin.id}" style="display:block; text-align:center; background:#6366F1; color:#fff; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:0.82rem; font-weight:600;">
+          View &amp; Claim Item
+        </a>
+      </div>
+    `;
+
+    const marker = L.marker([pin.lat, pin.lng], { icon: customIcon }).addTo(map);
+    marker.bindPopup(popupHtml);
+    markers[`${pin.lat}_${pin.lng}`] = marker;
+  });
+
+  function focusMarker(lat, lng) {
+    map.flyTo([lat, lng], 18, { animate: true, duration: 1.2 });
+    const key = `${lat}_${lng}`;
+    if (markers[key]) {
+      setTimeout(() => markers[key].openPopup(), 1200);
+    }
+  }
+</script>
+{% endblock %}

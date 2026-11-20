@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Browse Lost &amp; Found · {{ active_uni.name }}{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="campus-pill"><span class="dot"></span>{{ active_uni.name }}</span>
+      <span class="text-secondary small">· Incident Directory</span>
+    </div>
+    <h2 class="fw-800 mb-0" style="font-size:2.2rem; letter-spacing:-0.5px;">
+      Campus <span class="brand-gradient-text">Lost &amp; Found</span>
+    </h2>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('reports.campus_map') }}" class="btn btn-glass px-3">
+      <i class="fa fa-map-location-dot me-1 text-info"></i>Campus Map
+    </a>
+    <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose px-3">
+      <i class="fa fa-circle-exclamation me-1"></i>Report Lost
+    </a>
+    <a href="{{ url_for('reports.new_report', type='found') }}" class="btn btn-glow-emerald px-3">
+      <i class="fa fa-circle-check me-1"></i>Report Found
+    </a>
+  </div>
+</div>
+
+<!-- Modern Filter Bar -->
+<div class="filter-bar-wrap">
+  <form class="row g-2 align-items-center" method="get">
+    <div class="col-12 col-md-3">
+      <div class="position-relative">
+        <i class="fa fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+        <input name="q" class="form-control-custom w-100 ps-5" placeholder="Search keywords..." value="{{ args.get('q', '') }}">
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="type" class="form-select-custom w-100">
+        <option value="">All Types</option>
+        <option value="lost" {{ 'selected' if args.get('type') == 'lost' }}>Lost Only</option>
+        <option value="found" {{ 'selected' if args.get('type') == 'found' }}>Found Only</option>
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="category" class="form-select-custom w-100">
+        <option value="">All Categories</option>
+        {% for c in active_uni.categories %}
+          <option value="{{ c }}" {{ 'selected' if args.get('category') == c }}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="location" class="form-select-custom w-100">
+        <option value="">All Locations</option>
+        {% for l in active_uni.locations %}
+          <option value="{{ l }}" {{ 'selected' if args.get('location') == l }}>{{ l }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="status" class="form-select-custom w-100">
+        <option value="open" {{ 'selected' if args.get('status', 'open') == 'open' }}>Open Only</option>
+        <option value="resolved" {{ 'selected' if args.get('status') == 'resolved' }}>Resolved</option>
+        <option value="all" {{ 'selected' if args.get('status') == 'all' }}>All Statuses</option>
+      </select>
+    </div>
+    {% if args.get('mine') %}<input type="hidden" name="mine" value="1">{% endif %}
+    <div class="col-12 col-md-1 d-flex gap-1">
+      <button class="btn btn-glow-primary w-100 py-2" type="submit">
+        <i class="fa fa-filter"></i>
+      </button>
+      {% if args %}
+        <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass py-2" title="Clear Filters">
+          <i class="fa fa-rotate-left"></i>
+        </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Active Filter Status -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="small text-secondary">
+    Showing <strong class="text-dark">{{ reports | length }}</strong> items matching your criteria
+  </div>
+  {% if args.get('mine') %}
+    <span class="badge" style="background:rgba(99,102,241,0.2); color:#A5B4FC; border:1px solid rgba(99,102,241,0.4);">
+      <i class="fa fa-user me-1"></i>Showing My Reports Only
+    </span>
+  {% endif %}
+</div>
+
+<!-- Reports Grid -->
+<div class="row g-4 mb-5">
+  {% for r in reports %}
+    <div class="col-sm-6 col-lg-4">
+      <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="report-item-card">
+        <div class="report-item-image-wrap">
+          {% if r.image_url %}
+            <img src="{{ r.image_url }}" class="report-item-image" alt="{{ r.title }}">
+          {% else %}
+            <img src="{{ r.fallback_image }}" class="report-item-image" alt="{{ r.title }}">
+          {% endif %}
+          <div class="report-item-overlay">
+            <span class="badge-{{ r.type }}">
+              <i class="fa fa-{% if r.type == 'lost' %}magnifying-glass{% else %}circle-check{% endif %} me-1"></i>{{ r.type }}
+            </span>
+            <div class="d-flex gap-1">
+              {% if r.reward %}
+                <span class="badge bg-warning text-dark fw-bold"><i class="fa fa-gift me-1"></i>Reward</span>
+              {% endif %}
+              {% if r.status == 'resolved' %}
+                <span class="badge-resolved"><i class="fa fa-check-double me-1"></i>Resolved</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="report-item-content">
+          <div class="report-item-title">{{ r.title }}</div>
+          <div class="report-meta-row">
+            <i class="fa {{ r.category_icon or 'fa-tag' }}"></i>
+            <span>{{ r.category }}</span>
+          </div>
+          <div class="report-meta-row">
+            <i class="fa fa-location-dot"></i>
+            <span>{{ r.location }}</span>
+          </div>
+          <div class="report-meta-row">
+            <i class="fa fa-calendar"></i>
+            <span>{{ r.date }}</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="glass-panel text-center py-5">
+        <i class="fa fa-magnifying-glass fs-1 text-secondary mb-3"></i>
+        <h5 class="fw-bold">No reports found</h5>
+        <p class="small text-secondary mb-3">No matching items for this university. Try clearing filters or submit a new report.</p>
+        <div class="d-flex justify-content-center gap-2">
+          <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">Clear Filters</a>
+          <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm">Report Lost Item</a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

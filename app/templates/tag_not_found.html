@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Tag Not Found · FindIt{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center my-5">
+  <div class="col-md-6 text-center">
+    <div class="glass-panel p-5">
+      <i class="fa fa-triangle-exclamation fs-1 text-warning mb-3"></i>
+      <h3 class="fw-800 text-white mb-2">Unrecognized Smart Tag</h3>
+      <p class="text-secondary mb-4">The Smart Tag <code>{{ tag_code }}</code> could not be found or has been deactivated by its owner.</p>
+      <a href="{{ url_for('main.home') }}" class="btn btn-glow-primary">Go to Homepage</a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
