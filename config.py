@@ -5,8 +5,11 @@ load_dotenv()
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret")
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    SECRET_KEY = os.getenv("SECRET_KEY", "findit-super-secret-key-change-in-production-2024")
+    MONGO_URI = os.getenv(
+        "MONGO_URI",
+        "mongodb+srv://alirazamaharr786_db_user:FindItHackathon2024!@cluster0.8o1ytkl.mongodb.net/?retryWrites=true&w=majority"
+    )
     MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "findit")
     CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "app", "static", "uploads")
