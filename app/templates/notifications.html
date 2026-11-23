@@ -22,7 +22,7 @@
             <div>
               <h6 class="fw-bold text-dark mb-1">{{ n.title }}</h6>
               <p class="small text-secondary mb-1">{{ n.message }}</p>
-              <span class="text-dim small" style="font-size:0.75rem;">{{ n.created_at.strftime('%b %d, %Y %H:%M') if n.created_at else '' }}</span>
+              <span class="text-dim small" style="font-size:0.75rem;">{{ n.created_at | format_date('%b %d, %Y %H:%M') }}</span>
             </div>
           </div>
           {% if n.link and n.link != '#' %}

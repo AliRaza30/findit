@@ -76,4 +76,18 @@ def create_app():
             "total_universities": db.universities.count_documents({}) if db is not None else 0,
         }
 
+    @app.template_filter("format_date")
+    def format_date_filter(val, fmt="%b %d, %Y"):
+        if not val:
+            return ""
+        if hasattr(val, "strftime"):
+            return val.strftime(fmt)
+        val_str = str(val)
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(val_str.replace("Z", "+00:00"))
+            return dt.strftime(fmt)
+        except Exception:
+            return val_str[:10] if len(val_str) >= 10 else val_str
+
     return app
