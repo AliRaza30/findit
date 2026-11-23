@@ -55,8 +55,9 @@
               <i class="fa fa-id-badge text-primary"></i>Campus Affiliation
             </label>
             <select name="role" class="form-select-custom w-100">
-              <option value="student">Student</option>
-              <option value="staff" {{ 'selected' if form.get('role') == 'staff' }}>Faculty / Staff / Campus Security</option>
+              <option value="student" {{ 'selected' if form.get('role', 'student') == 'student' }}>Student</option>
+              <option value="teacher" {{ 'selected' if form.get('role') == 'teacher' }}>Teacher / Faculty</option>
+              <option value="staff" {{ 'selected' if form.get('role') == 'staff' }}>Staff / Campus Security</option>
             </select>
           </div>
         </div>

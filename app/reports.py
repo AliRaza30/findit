@@ -58,6 +58,7 @@ def _can_manage(report):
 
 
 @bp.route("/reports")
+@login_required
 def list_reports():
     db = get_db()
     uni = _get_current_or_guest_university()
@@ -68,9 +69,24 @@ def list_reports():
     args = request.args
     query = {"university_id": uni["_id"]}
 
-    status = args.get("status", "open")
-    if status in ("open", "resolved"):
-        query["status"] = status
+    is_admin = g.user.get("role") == "admin"
+
+    if is_admin:
+        status = args.get("status", "all")
+        if status in ("open", "resolved", "pending_approval", "rejected"):
+            query["status"] = status
+    else:
+        if args.get("mine"):
+            query["reporter_id"] = g.user["_id"]
+            status = args.get("status", "all")
+            if status in ("open", "resolved", "pending_approval", "rejected"):
+                query["status"] = status
+        else:
+            status = args.get("status", "open")
+            if status in ("open", "resolved"):
+                query["status"] = status
+            else:
+                query["status"] = "open"
 
     if args.get("type") in ("lost", "found"):
         query["type"] = args["type"]
@@ -81,9 +97,7 @@ def list_reports():
     if args.get("location"):
         query["location"] = args["location"]
 
-    if args.get("mine"):
-        if not g.user:
-            return redirect(url_for("auth.login"))
+    if args.get("mine") and not is_admin:
         query["reporter_id"] = g.user["_id"]
 
     q = args.get("q", "").strip()
@@ -106,11 +120,13 @@ def list_reports():
         reports=reports,
         args=args,
         active_uni=uni,
-        all_universities=all_universities
+        all_universities=all_universities,
+        is_admin=is_admin
     )
 
 
 @bp.route("/map")
+@login_required
 def campus_map():
     """
     Interactive Campus Map View: Displays lost & found pins across campus locations with GPS coordinates.
@@ -192,11 +208,18 @@ def new_report():
         lat = coords.get("lat")
         lng = coords.get("lng")
 
+        # Set status based on role:
+        # Campus admin submissions are published immediately;
+        # Student, Teacher, Staff submissions require admin verification and approval.
+        is_admin = g.user.get("role") == "admin"
+        status = "open" if is_admin else "pending_approval"
+
         report = {
             "university_id": uni["_id"],
             "reporter_id": g.user["_id"],
             "reporter_name": g.user["name"],
             "reporter_email": g.user["email"],
+            "reporter_role": g.user.get("role", "student"),
             "type": rtype,
             "title": title,
             "description": f.get("description", "").strip(),
@@ -208,14 +231,29 @@ def new_report():
             "reward": reward,
             "security_question": security_q,
             "image_url": save_image(request.files.get("image")),
-            "status": "open",
+            "status": status,
             "created_at": _now(),
         }
 
         db = get_db()
         report["_id"] = db.reports.insert_one(report).inserted_id
 
-        # Evaluate instant smart matches and notify user
+        if not is_admin:
+            # Notify university administrators that a new submission is awaiting approval
+            admins = list(db.users.find({"university_id": uni["_id"], "role": "admin"}))
+            for adm in admins:
+                create_notification(
+                    user_id=adm["_id"],
+                    university_id=uni["_id"],
+                    title=f"New {rtype.upper()} Request Awaiting Approval",
+                    message=f"{g.user['name']} ({g.user.get('role', 'student').capitalize()}) submitted '{title}'. Review in Admin Command Center.",
+                    link=url_for("admin.dashboard"),
+                    ntype="pending_approval"
+                )
+            flash("Your request has been submitted! Campus administration will review and approve it before it is published.", "success")
+            return redirect(url_for("main.home"))
+
+        # Evaluate instant smart matches for approved/open reports
         matches = find_all_matches(report)
         if matches:
             top_match = matches[0]
@@ -239,18 +277,27 @@ def new_report():
     return render_template(
         "report_new.html",
         form={"type": request.args.get("type", "lost")},
-        today=datetime.now().strftime("%Y-%m-%d")
+        today=datetime.now().strftime("%Y-%m-%d"),
+        is_admin=(g.user.get("role") == "admin")
     )
 
 
 @bp.route("/reports/<report_id>")
+@login_required
 def detail(report_id):
     uni = _get_current_or_guest_university()
     report = _own_report_or_404(report_id, uni=uni)
     db = get_db()
+    is_admin = (g.user.get("role") == "admin")
+    is_reporter = (report.get("reporter_id") == g.user["_id"])
     can_manage = _can_manage(report)
 
-    # Calculate smart matches
+    # If report is pending approval, only allow admin and the reporter to view it
+    if report.get("status") == "pending_approval" and not (is_admin or is_reporter):
+        flash("This report is currently pending campus admin approval.", "warning")
+        return redirect(url_for("reports.list_reports"))
+
+    # Calculate smart matches if open
     matches = find_all_matches(report) if report.get("status") == "open" else []
 
     claims = []
@@ -273,7 +320,9 @@ def detail(report_id):
         claims=claims,
         my_claim=my_claim,
         can_manage=can_manage,
-        active_uni=uni
+        active_uni=uni,
+        is_admin=is_admin,
+        is_reporter=is_reporter
     )
 
 

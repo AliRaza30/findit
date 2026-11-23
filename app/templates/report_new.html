@@ -120,8 +120,23 @@
           <input type="file" name="image" accept="image/*" class="form-control-custom w-100">
         </div>
 
+        {% if not is_admin %}
+          <div class="p-3 rounded mb-4" style="background:#EEF2FF; border:1px solid #C7D2FE;">
+            <div class="d-flex align-items-center gap-2">
+              <i class="fa fa-shield-halved text-primary fs-5"></i>
+              <div class="small text-secondary">
+                <strong class="text-dark">Campus Administration Verification:</strong> Submissions are reviewed by campus administration before being published to the live board.
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
         <button class="btn btn-glow-primary w-100 py-3 fw-bold" style="font-size:1rem;">
-          <i class="fa fa-paper-plane me-2"></i>Publish to Campus Portal
+          {% if is_admin %}
+            <i class="fa fa-paper-plane me-2"></i>Publish Immediately as Admin
+          {% else %}
+            <i class="fa fa-paper-plane me-2"></i>Submit Request for Admin Approval
+          {% endif %}
         </button>
       </form>
     </div>

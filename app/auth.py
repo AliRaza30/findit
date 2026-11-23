@@ -110,7 +110,7 @@ def register():
         role = f.get("role", "student")
         phone = f.get("phone", "").strip()
 
-        if role not in ("student", "staff"):
+        if role not in ("student", "teacher", "staff"):
             role = "student"
 
         if not uni or not name or not email or not password:
@@ -176,6 +176,8 @@ def login():
 
         _login_session(user)
         flash(f"Welcome back, {user['name']}!", "success")
+        if user.get("role") == "admin":
+            return redirect(url_for("admin.dashboard"))
         return redirect(url_for("main.home"))
 
     return render_template("login.html", universities=universities, form={})

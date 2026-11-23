@@ -1,4 +1,4 @@
-from flask import Flask, g, session
+from flask import Flask, g, session, request, redirect, url_for
 
 from config import Config
 from .db import init_db, get_db
@@ -31,6 +31,7 @@ def create_app():
         g.user = None
         g.university = None
         g.unread_notifs_count = 0
+        g.pending_approvals_count = 0
         db = get_db()
 
         uid = to_oid(session.get("user_id"))
@@ -40,12 +41,29 @@ def create_app():
                 g.user = user
                 g.university = db.universities.find_one({"_id": user["university_id"]})
                 g.unread_notifs_count = db.notifications.count_documents({"user_id": user["_id"], "is_read": False})
+                if user.get("role") == "admin" and g.university:
+                    g.pending_approvals_count = db.reports.count_documents({
+                        "university_id": g.university["_id"],
+                        "status": "pending_approval"
+                    })
             else:
                 session.clear()
 
-        # If guest is browsing an explored university
-        if not g.university and session.get("guest_uni_slug"):
-            g.university = db.universities.find_one({"slug": session.get("guest_uni_slug")})
+        # Enforce No General Public Access
+        # Only authenticated campus members (Student, Teacher, Staff, Admin) can access the system.
+        public_endpoints = {
+            "auth.login",
+            "auth.register",
+            "auth.register_university",
+            "main.demo_login",
+            "tags.scan_tag",
+            "static",
+        }
+
+        endpoint = request.endpoint
+        if endpoint and endpoint not in public_endpoints and not endpoint.startswith("static"):
+            if not g.user:
+                return redirect(url_for("auth.login"))
 
     @app.context_processor
     def inject_globals():
@@ -54,7 +72,8 @@ def create_app():
             "current_user": g.get("user"),
             "university": g.get("university"),
             "unread_notifs_count": g.get("unread_notifs_count", 0),
-            "total_universities": db.universities.count_documents({}),
+            "pending_approvals_count": g.get("pending_approvals_count", 0),
+            "total_universities": db.universities.count_documents({}) if db else 0,
         }
 
     return app

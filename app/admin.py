@@ -11,6 +11,10 @@ from .utils import admin_required, save_image, to_oid, create_notification
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
+def _now():
+    return datetime.now(timezone.utc)
+
+
 def _list_field(field):
     """Helper to add or delete items from categories or locations."""
     uid = g.university["_id"]
@@ -36,51 +40,203 @@ def dashboard():
 
     total_lost = db.reports.count_documents({"university_id": uid, "type": "lost"})
     total_found = db.reports.count_documents({"university_id": uid, "type": "found"})
+    pending_reports_count = db.reports.count_documents({"university_id": uid, "status": "pending_approval"})
     open_reports = db.reports.count_documents({"university_id": uid, "status": "open"})
     resolved_reports = db.reports.count_documents({"university_id": uid, "status": "resolved"})
     total_all = total_lost + total_found
     recovery_rate = int((resolved_reports / total_all * 100)) if total_all > 0 else g.university.get("recovery_rate", 85)
 
     stats = {
+        "pending_reports": pending_reports_count,
+        "pending_claims": db.claims.count_documents({"university_id": uid, "status": "pending"}),
         "open": open_reports,
         "resolved": resolved_reports,
         "total": total_all,
         "recovery_rate": recovery_rate,
         "users": db.users.count_documents({"university_id": uid}),
-        "pending_claims": db.claims.count_documents({"university_id": uid, "status": "pending"}),
         "total_tags": db.tags.count_documents({"university_id": uid}),
     }
 
-    # Analytics for Chart.js
-    # 1. Category breakdown
-    categories = g.university.get("categories", [])
-    cat_counts = []
-    for c in categories:
-        count = db.reports.count_documents({"university_id": uid, "category": c})
-        cat_counts.append(count)
+    # 1. Main Priority Queue: Items Awaiting Admin Approval
+    pending_reports = list(db.reports.find({"university_id": uid, "status": "pending_approval"}).sort("created_at", 1))
 
-    # 2. Campus Hotspots
-    locations = g.university.get("locations", [])[:6]
-    loc_counts = []
-    for l in locations:
-        count = db.reports.count_documents({"university_id": uid, "location": l})
-        loc_counts.append(count)
+    # 2. Handover Desk: Claims Awaiting Admin Decision ("give items")
+    pending_claims = list(db.claims.find({"university_id": uid, "status": "pending"}).sort("created_at", 1).limit(20))
+    for c in pending_claims:
+        c["report"] = db.reports.find_one({"_id": c["report_id"]})
 
+    # 3. Active / Recent Reports
+    recent_reports = list(db.reports.find({"university_id": uid}).sort("created_at", -1).limit(15))
+
+    # 4. Member Approvals
     pending_users = list(db.users.find({"university_id": uid, "status": "pending"}).sort("created_at", 1))
-    pending_claims = list(db.claims.find({"university_id": uid, "status": "pending"}).sort("created_at", 1).limit(15))
-    recent_reports = list(db.reports.find({"university_id": uid}).sort("created_at", -1).limit(10))
+
+    # Analytics for Chart.js
+    categories = g.university.get("categories", [])
+    cat_counts = [db.reports.count_documents({"university_id": uid, "category": c}) for c in categories]
+
+    locations = g.university.get("locations", [])[:6]
+    loc_counts = [db.reports.count_documents({"university_id": uid, "location": l}) for l in locations]
 
     return render_template(
         "admin/dashboard.html",
         stats=stats,
-        pending_users=pending_users,
+        pending_reports=pending_reports,
         pending_claims=pending_claims,
         recent_reports=recent_reports,
+        pending_users=pending_users,
         chart_categories=categories,
         chart_category_counts=cat_counts,
         chart_locations=locations,
         chart_location_counts=loc_counts
     )
+
+
+@bp.route("/reports/<report_id>/approve", methods=["POST"])
+@admin_required
+def approve_report(report_id):
+    """Admin approves a student/teacher/staff lost or found submission and makes it live."""
+    db = get_db()
+    oid = to_oid(report_id)
+    scope = {"_id": oid, "university_id": g.university["_id"]}
+    report = db.reports.find_one(scope)
+
+    if not report:
+        flash("Report not found.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    db.reports.update_one(scope, {
+        "$set": {
+            "status": "open",
+            "approved_by": g.user["_id"],
+            "approved_at": _now()
+        }
+    })
+
+    create_notification(
+        user_id=report["reporter_id"],
+        university_id=g.university["_id"],
+        title="Report Approved & Published! 🟢",
+        message=f"Your '{report['title']}' request was approved by campus administration and is now live on the campus board.",
+        link=url_for("reports.detail", report_id=report["_id"]),
+        ntype="report_approved"
+    )
+
+    flash(f"Report '{report['title']}' has been approved and published to the campus portal.", "success")
+    return redirect(request.referrer or url_for("admin.dashboard"))
+
+
+@bp.route("/reports/<report_id>/reject", methods=["POST"])
+@admin_required
+def reject_report(report_id):
+    """Admin rejects an invalid, duplicate, or inappropriate report."""
+    db = get_db()
+    oid = to_oid(report_id)
+    scope = {"_id": oid, "university_id": g.university["_id"]}
+    report = db.reports.find_one(scope)
+
+    if not report:
+        flash("Report not found.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    db.reports.update_one(scope, {
+        "$set": {
+            "status": "rejected",
+            "rejected_by": g.user["_id"],
+            "rejected_at": _now()
+        }
+    })
+
+    create_notification(
+        user_id=report["reporter_id"],
+        university_id=g.university["_id"],
+        title="Report Submission Update",
+        message=f"Your '{report['title']}' request was reviewed and not approved by campus administration.",
+        link=url_for("reports.detail", report_id=report["_id"]),
+        ntype="report_rejected"
+    )
+
+    flash(f"Report '{report['title']}' has been rejected.", "info")
+    return redirect(request.referrer or url_for("admin.dashboard"))
+
+
+@bp.route("/reports/<report_id>/give-item", methods=["POST"])
+@admin_required
+def give_item(report_id, target_claim_id=None):
+    """
+    Admin authorizes handover of the item to claimant/owner,
+    marking the report as Safely Handed Over / Resolved and generating verification code.
+    """
+    db = get_db()
+    oid = to_oid(report_id)
+    scope = {"_id": oid, "university_id": g.university["_id"]}
+    report = db.reports.find_one(scope)
+
+    if not report:
+        flash("Report not found.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    claim_id_str = target_claim_id or request.form.get("claim_id")
+    recipient_notes = request.form.get("recipient_notes", "").strip()
+    claim_doc = None
+
+    if claim_id_str:
+        claim_oid = to_oid(claim_id_str)
+        claim_doc = db.claims.find_one({"_id": claim_oid, "report_id": report["_id"]})
+
+    # Mark report as resolved
+    update_data = {
+        "status": "resolved",
+        "resolved_at": _now(),
+        "resolved_by": g.user["_id"],
+        "handover_notes": recipient_notes or "Handed over by Campus Administration",
+    }
+    if claim_doc:
+        update_data["resolved_claimant"] = claim_doc["claimant_id"]
+
+    db.reports.update_one(scope, {"$set": update_data})
+
+    if claim_doc:
+        db.claims.update_one({"_id": claim_doc["_id"]}, {"$set": {"status": "approved", "decided_at": _now(), "decided_by": g.user["_id"]}})
+        db.claims.update_many({"report_id": report["_id"], "_id": {"$ne": claim_doc["_id"]}, "status": "pending"}, {"$set": {"status": "rejected"}})
+
+        # Notify claimant
+        create_notification(
+            user_id=claim_doc["claimant_id"],
+            university_id=g.university["_id"],
+            title="Item Handed Over! 🎉",
+            message=f"Your claim on '{report['title']}' was approved by campus administration. Item has been officially handed over.",
+            link=url_for("reports.handover_pass", report_id=report["_id"]),
+            ntype="item_handed_over"
+        )
+
+    # Notify reporter
+    if report.get("reporter_id"):
+        create_notification(
+            user_id=report["reporter_id"],
+            university_id=g.university["_id"],
+            title="Item Safely Handed Over! 🎉",
+            message=f"Your report '{report['title']}' has been marked as safely recovered and handed over.",
+            link=url_for("reports.detail", report_id=report["_id"]),
+            ntype="report_resolved"
+        )
+
+    flash(f"Item '{report['title']}' has been officially handed over and case marked resolved!", "success")
+    return redirect(request.referrer or url_for("admin.dashboard"))
+
+
+@bp.route("/claims/<claim_id>/give", methods=["POST"])
+@admin_required
+def give_claim_item(claim_id):
+    """1-Click handover decision directly from Admin Claims queue."""
+    db = get_db()
+    c_oid = to_oid(claim_id)
+    claim_doc = db.claims.find_one({"_id": c_oid, "university_id": g.university["_id"]})
+    if not claim_doc:
+        flash("Claim not found.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    return give_item(str(claim_doc["report_id"]), target_claim_id=str(c_oid))
 
 
 @bp.route("/users/<user_id>/<action>", methods=["POST"])

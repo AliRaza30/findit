@@ -1,53 +1,81 @@
-# FindIt 2.0 — Universal Multi-Tenant University Lost & Found Sentinel
-### 🏆 International Hackathon Edition
+# FindIt 2.0 — Dedicated University Lost & Found Sentinel
+### 🏆 Dual-Interface Enterprise Architecture (Member Portal + Admin Command Center)
 
-**FindIt** is a next-generation, AI-assisted multi-tenant campus lost and found ecosystem designed to fulfill every requirement of a modern university finder, security desk, and student portal.
-
-Zero university is hardcoded: each institution manages its own isolated workspace, categories, geospatial campus coordinates, security desk hotlines, and verification modes.
-
----
-
-## 🚀 Key Innovations & Features
-
-1. **🌐 University Finder & Campus Directory**
-   - Global campus directory allowing students and visitors to search partner universities by country, city, or domain.
-   - Live campus telemetry: recovery rate, active lost reports, and direct entrance into public campus exploration mode.
-
-2. **🗺️ Interactive Campus Map (Leaflet.js Geospatial Telemetry)**
-   - Dark-mode campus GIS map with animated pulsating markers:
-     - 🔴 **Red Pulse**: Lost items
-     - 🟢 **Green Pulse**: Found items
-     - 🔵 **Blue Pin**: 24/7 Campus Security Lost & Found Desks
-   - Clickable interactive popups with image previews and 1-click claim workflows.
-
-3. **🤖 AI Smart Match 2.0 Engine**
-   - Multi-factor correlation algorithm computing real-time match confidence (e.g. `96% Match!`).
-   - Cross-evaluates token overlap, category alignment, geospatial location proximity, and temporal delta (days difference).
-   - Instant in-app notification triggers when opposite reports are correlated.
-
-4. **🏷️ FindIt Smart QR Tags (Preventative Protection)**
-   - Students register custom digital tags (`FIT-APEX-8821`) for laptops, keys, backpacks, and water bottles.
-   - Generates printable QR sticker sheets.
-   - When scanned by any smartphone camera, finders can send an **anonymous recovery notification** without exposing personal phone numbers or emails.
-
-5. **🖨️ 1-Click Printable Missing Item Poster**
-   - Automatically generates print-ready campus notice board posters with high-visibility styling, reward badges, and auto-generated QR codes directly linking to the digital case.
-
-6. **🛡️ Anti-Fraud & Safe Handover Workflow**
-   - Reporters of found items can set **Secret Verification Questions** (e.g. *"What sticker is on the laptop?"*).
-   - Authorizing a claim issues a **Cryptographic Digital Handover Pass** with QR code and voucher ID for campus security guards to verify before item release.
-
-7. **📊 Admin Command Center & Visual Telemetry**
-   - Interactive Chart.js analytics: Category Distribution (Donut Chart) and Campus Hotspot Locations (Bar Chart).
-   - Member approval queue and 1-click CSV export of all campus incident reports.
+**FindIt** is a next-generation campus lost and found ecosystem engineered with a strict two-tier architecture:
+1. **Dedicated Member Dashboard**: A unified, distraction-free portal for **Students, Teachers, and Staff** to submit lost or found requests, track admin verification status, and claim recovered items.
+2. **Dedicated Admin Command Center**: An executive administrative interface for **Campus Admins Only** to review and approve incoming item requests, decide ownership claims, and officially authorize physical item handovers ("Give Item").
+3. **Strict Institution Privacy (No General Public)**: Unauthenticated visitors cannot browse student reports, item records, or campus data. Access is strictly gated behind verified campus authentication.
 
 ---
 
-## ⚡ Quick Start & Run Instructions
+## 🏛️ Two-Tier Dedicated Architecture
+
+### 1. 🎓 Member Workspace (Student · Teacher · Staff)
+- **Role-Aware Workspaces**: Auto-branded views for Students, Faculty/Teachers, and Campus Staff.
+- **Request Submission Hub**: 1-click submission for Lost and Found requests with image upload, categories, campus zones, and secret verification questions.
+- **My Submitted Requests Tracking**: Real-time status badges:
+  - `🟡 Pending Admin Approval`: Transparent notification that the request is under administrative review.
+  - `🟢 Approved & Live`: Published to the verified campus noticeboard.
+  - `🎉 Safely Handed Over`: Belongs to owner and marked resolved.
+  - `🔴 Rejected`: Filtered or duplicate submission.
+- **Verified Campus Feed**: Live, verified items approved by campus administrators.
+- **Ownership Claims & Handover**: Submit ownership proofs and access official **Digital Handover Passes** upon approval.
+- **Smart QR Tags**: Generate scannable QR tags for laptops, student IDs, and keys.
+
+### 2. 👑 Admin Command Center (Admin Only)
+- **Item Approvals Queue (`admin prove etc`)**: Review all item submissions from students, teachers, and staff. 1-click **Approve & Publish** or **Reject** with automated notifications.
+- **Claims & Handover Desk (`give iteas`)**: Review claimant ownership proofs and answers to verification challenges. 1-click **Authorize Handover (Give Item)** to generate handover passes and mark cases resolved.
+- **Telemetry & Hotspots**: Chart.js visual telemetry of incident categories and campus hotspot locations.
+- **Audit Records Export**: 1-click CSV export of all campus lost and found incidents for university security archives.
+- **Member Approvals**: Manage pending student and staff registrations.
+
+### 3. 🔒 Strict Campus Privacy (No General Public)
+- All item browsing, maps, and reports require active campus login.
+- Unauthenticated visitors are automatically directed to the secure sign-in portal.
+
+---
+
+## 🔑 1-Click Demo & Hackathon Logins
+
+Use the **"Judge Login"** dropdown in the navigation bar for instant 1-click access:
+
+| Role | Name | Email | Password | Landing View |
+|---|---|---|---|---|
+| **Campus Admin** | Prof. Robert Sterling | `admin@apex.edu` | `password123` | **Admin Command Center** (`/admin/`) |
+| **Student** | Sarah Jenkins | `student@apex.edu` | `password123` | **Student Workspace** (`/`) |
+| **Teacher / Faculty** | Dr. Eleanor Vance | `teacher@apex.edu` | `password123` | **Teacher Workspace** (`/`) |
+| **Staff / Security** | Officer Marcus Cole | `staff@apex.edu` | `password123` | **Staff Workspace** (`/`) |
+
+---
+
+## ⚡ Deployment to Vercel & MongoDB Atlas
+
+### 1. MongoDB Atlas Setup
+1. Create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
+2. Obtain your connection URI:
+   ```
+   mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+   ```
+3. Set your environment variables:
+   - `MONGO_URI`: Your MongoDB Atlas URI.
+   - `MONGO_DB_NAME`: `findit`
+   - `SECRET_KEY`: A long secure random string.
+
+### 2. Vercel Deployment
+1. Connect your GitHub repository to [Vercel](https://vercel.com).
+2. Add your environment variables in Vercel Project Settings (`MONGO_URI`, `MONGO_DB_NAME`, `SECRET_KEY`).
+3. Deploy! The project includes `vercel.json` and `api/index.py` configured for `@vercel/python` serverless deployment with `dnspython` support.
+
+> **Resilient Local Fallback:** When running offline or without an active MongoDB connection, FindIt automatically falls back to an in-memory MongoMock engine pre-seeded with sample university workspaces, users, items, and pending approval queues.
+
+---
+
+## 💻 Local Run Instructions
 
 ```bash
 # 1. Activate virtual environment
 venv\Scripts\activate      # Windows
+# or source venv/bin/activate on macOS/Linux
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -55,55 +83,4 @@ pip install -r requirements.txt
 # 3. Launch application
 python run.py
 ```
-
-Then visit **http://127.0.0.1:5000** in your browser.
-
-> **Note on Database Resiliency:** FindIt includes an automated zero-downtime MongoDB fallback. If local MongoDB is offline or running in sandboxed mode, FindIt seamlessly initializes an in-memory MongoMock engine pre-seeded with rich sample universities, items, smart tags, and analytics!
-
----
-
-## 🔑 1-Click Hackathon Judge & Demo Logins
-
-For rapid evaluation, the navigation bar includes a **"Judge Login"** menu with 1-click authentication:
-
-| Role | Name | Email | Password |
-|---|---|---|---|
-| **Campus Admin** | Prof. Robert Sterling | `admin@apex.edu` | `password123` |
-| **Student** | Sarah Jenkins | `sarah@apex.edu` | `password123` |
-| **Security Staff** | Officer Marcus Cole | `marcus.security@apex.edu` | `password123` |
-
----
-
-## 🏛️ Multi-Tenant Isolation Architecture
-
-- **Strict Document Scoping**: Every collection (`reports`, `claims`, `tags`, `users`, `notifications`) is strictly partitioned by `university_id`.
-- **Compound Unique Constraints**: Emails are unique per university (`university_id + email`), enabling students to maintain accounts across institutions without conflict.
-- **Verification Modes**:
-  - `open`: Instant student self-registration.
-  - `email_domain`: Restricted to official university email domains (`@harvard.edu`, `@apex.edu`).
-  - `admin_approval`: Registrations remain pending until vetted by campus security/admin.
-
----
-
-## 📁 Project Architecture
-
-```
-findit/
-├── app/
-│   ├── __init__.py          # App factory, context loaders, global variables
-│   ├── db.py                # MongoDB connection + MongoMock resilient engine + Seed data
-│   ├── utils.py             # Smart Match 2.0, image storage, notifications, OID helper
-│   ├── auth.py              # Campus registration, student sign-up, session auth
-│   ├── main.py              # University Finder directory, home dashboard, demo logins
-│   ├── reports.py           # Lost/Found CRUD, search filters, Leaflet map, print poster
-│   ├── tags.py              # FindIt Smart QR Tag generation & public anonymous scan
-│   ├── admin.py             # Command Center analytics, approvals, settings, CSV export
-│   ├── notifications.py     # In-app real-time notification alerts
-│   ├── static/
-│   │   ├── css/style.css    # World-class cyberpunk/glassmorphism design system
-│   │   └── uploads/         # Uploaded images
-│   └── templates/           # Fully responsive modern Jinja2 templates
-├── config.py                # Configuration and environment variables
-├── requirements.txt         # Python package specifications
-└── run.py                   # Application entrypoint
-```
+Open **http://127.0.0.1:5000** in your browser.

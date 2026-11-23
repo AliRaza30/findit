@@ -6,27 +6,53 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
   <div>
-    <h2 class="fw-800 mb-1" style="font-size:2rem; letter-spacing:-0.5px;">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge" style="background:rgba(234,179,8,0.15); color:#CA8A04; border:1px solid rgba(234,179,8,0.3); font-weight:700;">
+        <i class="fa fa-crown me-1"></i>Administrator Command Authority
+      </span>
+      <span class="text-secondary small">·</span>
+      <span class="text-secondary small"><i class="fa fa-university me-1 text-primary"></i>{{ university.name }}</span>
+    </div>
+    <h2 class="fw-800 mb-0" style="font-size:2rem; letter-spacing:-0.5px;">
       Campus Admin <span class="brand-gradient-text">Command Center</span>
     </h2>
-    <p class="text-secondary small mb-0">{{ university.name }} · Real-Time Incident Telemetry &amp; Verification</p>
+    <p class="text-secondary small mb-0 mt-1">Review student &amp; staff item submissions, approve claims, and authorize physical item handovers.</p>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin.export_csv') }}" class="btn btn-glass btn-sm" title="Download university audit record">
+      <i class="fa fa-file-csv me-1 text-success"></i>Export Security Records (CSV)
+    </a>
+    <a href="{{ url_for('admin.settings') }}" class="btn btn-glass btn-sm">
+      <i class="fa fa-gear me-1 text-primary"></i>Settings
+    </a>
   </div>
 </div>
 
 <!-- Bento Grid KPI Stats -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-lg-3">
-    <div class="bento-stat-card">
-      <div class="stat-icon" style="background:#FFE4E6; color:#E11D48;">
-        <i class="fa fa-folder-open"></i>
+    <div class="bento-stat-card" style="border-left: 4px solid #EAB308;">
+      <div class="stat-icon" style="background:#FEF3C7; color:#D97706;">
+        <i class="fa fa-clock"></i>
       </div>
-      <div class="stat-value text-dark">{{ stats.open }}</div>
-      <div class="stat-label">Active Unresolved Cases</div>
+      <div class="stat-value text-warning">{{ stats.pending_reports }}</div>
+      <div class="stat-label">Requests Awaiting Approval</div>
     </div>
   </div>
 
   <div class="col-6 col-lg-3">
-    <div class="bento-stat-card">
+    <div class="bento-stat-card" style="border-left: 4px solid #0284C7;">
+      <div class="stat-icon" style="background:#E0F2FE; color:#0284C7;">
+        <i class="fa fa-hand-holding-heart"></i>
+      </div>
+      <div class="stat-value text-info">{{ stats.pending_claims }}</div>
+      <div class="stat-label">Claims Awaiting Handover</div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="bento-stat-card" style="border-left: 4px solid #10B981;">
       <div class="stat-icon" style="background:#D1FAE5; color:#059669;">
         <i class="fa fa-circle-check"></i>
       </div>
@@ -36,7 +62,7 @@
   </div>
 
   <div class="col-6 col-lg-3">
-    <div class="bento-stat-card">
+    <div class="bento-stat-card" style="border-left: 4px solid #4F46E5;">
       <div class="stat-icon" style="background:#EEF2FF; color:#4338CA;">
         <i class="fa fa-users"></i>
       </div>
@@ -44,20 +70,267 @@
       <div class="stat-label">Verified Members</div>
     </div>
   </div>
+</div>
 
-  <div class="col-6 col-lg-3">
-    <div class="bento-stat-card">
-      <div class="stat-icon" style="background:#FEF3C7; color:#D97706;">
-        <i class="fa fa-clock"></i>
+<!-- ================= QUEUE 1: ITEM REQUESTS AWAITING ADMIN APPROVAL ================= -->
+<div class="glass-panel p-4 mb-5" style="border: 1px solid #FDE68A;">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="fa fa-clipboard-check text-warning me-2"></i>Item Submissions Awaiting Approval
+        </h5>
+        <span class="badge bg-warning text-dark fw-bold">{{ pending_reports | length }} Awaiting Review</span>
       </div>
-      <div class="stat-value text-warning">{{ stats.pending_claims }}</div>
-      <div class="stat-label">Claims Awaiting Review</div>
+      <p class="small text-secondary mb-0 mt-1">Review student, teacher, and staff requests before publishing to the campus board</p>
+    </div>
+  </div>
+
+  {% if pending_reports %}
+    <div class="table-responsive">
+      <table class="table align-middle table-hover mb-0" style="font-size:0.92rem;">
+        <thead class="table-light">
+          <tr>
+            <th style="min-width:240px;">Item Details</th>
+            <th>Type</th>
+            <th>Submitted By</th>
+            <th>Category &amp; Location</th>
+            <th>Date</th>
+            <th class="text-end" style="min-width:210px;">Approval Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in pending_reports %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:48px; height:48px; border-radius:10px; overflow:hidden; background:#F1F5F9; flex-shrink:0;">
+                    {% if r.image_url %}
+                      <img src="{{ r.image_url }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ r.title }}">
+                    {% else %}
+                      <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
+                        <i class="fa fa-image"></i>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <strong class="text-dark d-block">{{ r.title }}</strong>
+                    <span class="text-secondary small d-block" style="font-size:0.8rem; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                      {{ r.description or 'No extra details provided' }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge-{{ r.type }}">
+                  <i class="fa fa-{% if r.type == 'lost' %}circle-exclamation{% else %}circle-check{% endif %} me-1"></i>{{ r.type | upper }}
+                </span>
+              </td>
+              <td>
+                <strong class="text-dark d-block" style="font-size:0.88rem;">{{ r.reporter_name }}</strong>
+                <span class="badge bg-light text-primary border" style="font-size:0.72rem;">{{ r.reporter_role | capitalize if r.reporter_role else 'Student' }}</span>
+                <span class="text-muted small d-block" style="font-size:0.75rem;">{{ r.reporter_email }}</span>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border d-inline-block mb-1">{{ r.category }}</span>
+                <div class="small text-secondary"><i class="fa fa-location-dot me-1 text-danger"></i>{{ r.location }}</div>
+              </td>
+              <td><span class="small text-secondary">{{ r.date }}</span></td>
+              <td class="text-end">
+                <div class="d-inline-flex gap-2">
+                  <form method="post" action="{{ url_for('admin.approve_report', report_id=r._id) }}">
+                    <button class="btn btn-glow-emerald btn-sm px-3" title="Approve and publish to campus board">
+                      <i class="fa fa-check me-1"></i>Approve
+                    </button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin.reject_report', report_id=r._id) }}">
+                    <button class="btn btn-outline-danger btn-sm px-2" title="Reject request">
+                      <i class="fa fa-times"></i>
+                    </button>
+                  </form>
+                  <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="btn btn-glass btn-sm" title="Inspect full details">
+                    <i class="fa fa-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="text-center py-4 text-secondary">
+      <div style="width:48px; height:48px; border-radius:50%; background:#ECFDF5; color:#059669; display:inline-flex; align-items:center; justify-content:center; font-size:1.4rem; margin-bottom:0.75rem;">
+        <i class="fa fa-circle-check"></i>
+      </div>
+      <h6 class="fw-bold text-dark mb-1">Queue Clear: All Submissions Reviewed!</h6>
+      <p class="small text-secondary mb-0">No student or staff reports are currently awaiting admin approval.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ================= QUEUE 2: CLAIMS & HANDOVER DESK ("give items") ================= -->
+<div class="glass-panel p-4 mb-5" style="border: 1px solid #BAE6FD;">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="fa fa-handshake text-info me-2"></i>Claims &amp; Item Handover Desk
+        </h5>
+        <span class="badge bg-info text-white fw-bold">{{ pending_claims | length }} Pending Handover</span>
+      </div>
+      <p class="small text-secondary mb-0 mt-1">Review verified claims and officially authorize item handovers</p>
+    </div>
+  </div>
+
+  {% if pending_claims %}
+    <div class="row g-3">
+      {% for c in pending_claims %}
+        <div class="col-lg-6">
+          <div class="p-4 rounded h-100 d-flex flex-column justify-content-between" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+            <div>
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">
+                    {{ c.report.title if c.report else 'Campus Item' }}
+                  </h6>
+                  <span class="badge-{{ c.report.type if c.report else 'found' }}">
+                    {{ c.report.type | upper if c.report else 'FOUND' }}
+                  </span>
+                  <span class="badge bg-light text-dark border ms-1">{{ c.report.location if c.report else '' }}</span>
+                </div>
+                <span class="badge bg-warning text-dark"><i class="fa fa-clock me-1"></i>Awaiting Decision</span>
+              </div>
+
+              <!-- Claimant Info -->
+              <div class="p-3 rounded my-3" style="background:#FFFFFF; border:1px solid #E2E8F0;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <strong class="text-dark"><i class="fa fa-user me-1 text-primary"></i>Claimant: {{ c.claimant_name }}</strong>
+                  <span class="badge bg-light text-primary border">{{ c.claimant_role | capitalize if c.claimant_role else 'Student' }}</span>
+                </div>
+                <div class="small text-secondary mb-1"><i class="fa fa-envelope me-1"></i>{{ c.claimant_email }}</div>
+                {% if c.claimant_phone %}
+                  <div class="small text-info mb-2"><i class="fa fa-phone me-1"></i>{{ c.claimant_phone }}</div>
+                {% endif %}
+
+                <div class="small text-dark mt-2 p-2 rounded" style="background:#F8FAFC; border-left:3px solid #0284C7;">
+                  <strong>Proof / Statement:</strong> {{ c.message }}
+                </div>
+
+                {% if c.security_answer %}
+                  <div class="small text-warning mt-2">
+                    <i class="fa fa-key me-1"></i><strong>Security Answer:</strong> {{ c.security_answer }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Handover Actions -->
+            <div class="d-flex gap-2">
+              <form method="post" action="{{ url_for('admin.give_claim_item', claim_id=c._id) }}" class="flex-grow-1">
+                <button class="btn btn-glow-emerald btn-sm w-100 py-2 fw-semibold">
+                  <i class="fa fa-handshake me-1"></i>Authorize Handover (Give Item)
+                </button>
+              </form>
+              {% if c.report %}
+                <a href="{{ url_for('reports.detail', report_id=c.report._id) }}" class="btn btn-glass btn-sm" title="View report details">
+                  <i class="fa fa-eye"></i>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-4 text-secondary">
+      <div style="width:48px; height:48px; border-radius:50%; background:#F0FDF4; color:#059669; display:inline-flex; align-items:center; justify-content:center; font-size:1.4rem; margin-bottom:0.75rem;">
+        <i class="fa fa-check-double"></i>
+      </div>
+      <h6 class="fw-bold text-dark mb-1">All Ownership Claims Decided!</h6>
+      <p class="small text-secondary mb-0">No items are currently waiting for handover decisions.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ================= QUEUE 3: MEMBER REGISTRATIONS & TELEMETRY ================= -->
+<div class="row g-4 mb-5">
+  <!-- Member Registrations -->
+  <div class="col-lg-6">
+    <div class="glass-panel p-4 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="fa fa-user-clock text-warning me-2"></i>Member Account Approvals
+        </h6>
+        <span class="badge bg-warning text-dark">{{ pending_users | length }} Pending</span>
+      </div>
+
+      {% for u in pending_users %}
+        <div class="p-3 mb-2 rounded d-flex justify-content-between align-items-center" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+          <div>
+            <strong class="text-dark">{{ u.name }}</strong>
+            <div class="small text-secondary"><i class="fa fa-envelope me-1"></i>{{ u.email }} · <span class="badge bg-light text-primary border">{{ u.role | capitalize }}</span></div>
+          </div>
+          <div class="d-flex gap-2">
+            <form method="post" action="{{ url_for('admin.user_action', user_id=u._id, action='approve') }}">
+              <button class="btn btn-glow-emerald btn-sm"><i class="fa fa-check me-1"></i>Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.user_action', user_id=u._id, action='reject') }}">
+              <button class="btn btn-glass btn-sm text-danger"><i class="fa fa-times"></i></button>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-secondary">
+          <i class="fa fa-circle-check fs-2 text-emerald mb-2"></i>
+          <p class="small mb-0">No pending student, teacher, or staff registrations.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Recent Cases Overview -->
+  <div class="col-lg-6">
+    <div class="glass-panel p-4 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold text-dark mb-0">
+          <i class="fa fa-history text-primary me-2"></i>Recent Campus Reports
+        </h6>
+        <a href="{{ url_for('reports.list_reports') }}" class="small text-primary text-decoration-none fw-semibold">View All</a>
+      </div>
+
+      {% for r in recent_reports[:5] %}
+        <div class="p-2 mb-2 rounded d-flex justify-content-between align-items-center" style="background:#F8FAFC; border:1px solid #E2E8F0;">
+          <div>
+            <strong class="text-dark d-block" style="font-size:0.88rem;">{{ r.title }}</strong>
+            <span class="small text-secondary"><i class="fa fa-location-dot me-1 text-danger"></i>{{ r.location }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% if r.status == 'pending_approval' %}
+              <span class="badge bg-warning text-dark">Pending</span>
+            {% elif r.status == 'open' %}
+              <span class="badge bg-success text-white">Active</span>
+            {% elif r.status == 'resolved' %}
+              <span class="badge bg-primary text-white">Handed Over</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ r.status }}</span>
+            {% endif %}
+            <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="btn btn-glass btn-sm py-0 px-2" style="font-size:0.75rem;">
+              <i class="fa fa-eye"></i>
+            </a>
+          </div>
+        </div>
+      {% else %}
+        <div class="text-center py-4 text-secondary">
+          <p class="small mb-0">No reports recorded yet.</p>
+        </div>
+      {% endfor %}
     </div>
   </div>
 </div>
 
-<!-- Chart.js Visual Telemetry -->
-<div class="row g-4 mb-5">
+<!-- ================= CHARTS TELEMETRY ================= -->
+<div class="row g-4 mb-4">
   <div class="col-lg-5">
     <div class="glass-panel p-4 h-100">
       <div class="d-flex align-items-center justify-content-between mb-3">
@@ -87,72 +360,6 @@
   </div>
 </div>
 
-<!-- Pending Approvals & Claims Grid -->
-<div class="row g-4 mb-5">
-  <!-- Users Pending Approval -->
-  <div class="col-lg-6">
-    <div class="glass-panel p-4 h-100">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="fw-bold text-dark mb-0">
-          <i class="fa fa-user-clock text-warning me-2"></i>Member Approvals
-        </h6>
-        <span class="badge" style="background:#FEF3C7; color:#B45309;">{{ pending_users | length }} Pending</span>
-      </div>
-
-      {% for u in pending_users %}
-        <div class="p-3 mb-2 rounded d-flex justify-content-between align-items-center" style="background:#F8FAFC; border:1px solid #E2E8F0;">
-          <div>
-            <strong class="text-dark">{{ u.name }}</strong>
-            <div class="small text-secondary"><i class="fa fa-envelope me-1"></i>{{ u.email }} · <span class="badge bg-light text-primary border">{{ u.role }}</span></div>
-          </div>
-          <div class="d-flex gap-2">
-            <form method="post" action="{{ url_for('admin.user_action', user_id=u._id, action='approve') }}">
-              <button class="btn btn-glow-emerald btn-sm"><i class="fa fa-check me-1"></i>Approve</button>
-            </form>
-            <form method="post" action="{{ url_for('admin.user_action', user_id=u._id, action='reject') }}">
-              <button class="btn btn-glass btn-sm text-danger"><i class="fa fa-times"></i></button>
-            </form>
-          </div>
-        </div>
-      {% else %}
-        <div class="text-center py-4 text-secondary">
-          <i class="fa fa-circle-check fs-2 text-emerald mb-2"></i>
-          <p class="small mb-0">No pending student or staff registrations.</p>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Pending Claims -->
-  <div class="col-lg-6">
-    <div class="glass-panel p-4 h-100">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="fw-bold text-dark mb-0">
-          <i class="fa fa-clipboard-check text-info me-2"></i>Pending Ownership Claims
-        </h6>
-        <span class="badge" style="background:#E0F2FE; color:#0284C7;">{{ pending_claims | length }} Pending</span>
-      </div>
-
-      {% for c in pending_claims %}
-        <div class="p-3 mb-2 rounded d-flex justify-content-between align-items-center" style="background:#F8FAFC; border:1px solid #E2E8F0;">
-          <div>
-            <strong class="text-dark">{{ c.claimant_name }}</strong>
-            <div class="small text-secondary"><i class="fa fa-hand me-1"></i>{{ c.kind | capitalize }} Claim</div>
-          </div>
-          <a class="btn btn-glow-primary btn-sm px-3" href="{{ url_for('reports.detail', report_id=c.report_id) }}">
-            <i class="fa fa-eye me-1"></i>Review
-          </a>
-        </div>
-      {% else %}
-        <div class="text-center py-4 text-secondary">
-          <i class="fa fa-circle-check fs-2 text-info mb-2"></i>
-          <p class="small mb-0">All ownership claims have been decided.</p>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-
 {% endblock %}
 
 {% block extra_scripts %}
@@ -169,14 +376,14 @@
         data: catData.map(v => v === 0 ? 1 : v),
         backgroundColor: ['#6366F1', '#EC4899', '#10B981', '#06B6D4', '#F59E0B', '#A855F7', '#64748B', '#F43F5E'],
         borderWidth: 2,
-        borderColor: '#0E1626'
+        borderColor: '#FFFFFF'
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 10 } } }
+        legend: { position: 'bottom', labels: { color: '#64748B', font: { size: 10 } } }
       }
     }
   });
@@ -192,7 +399,7 @@
       datasets: [{
         label: 'Incident Volume',
         data: locData.map(v => v === 0 ? 2 : v),
-        backgroundColor: 'rgba(16, 185, 129, 0.65)',
+        backgroundColor: 'rgba(16, 185, 129, 0.75)',
         borderColor: '#10B981',
         borderWidth: 1,
         borderRadius: 6
@@ -202,8 +409,8 @@
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        x: { ticks: { color: '#94A3B8', font: { size: 10 } }, grid: { display: false } },
-        y: { ticks: { color: '#94A3B8', precision: 0 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        x: { ticks: { color: '#64748B', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#64748B', precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
       },
       plugins: {
         legend: { display: false }

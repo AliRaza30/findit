@@ -53,34 +53,38 @@
 
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav mx-auto gap-1 my-2 my-lg-0">
-        <li class="nav-item">
-          <a class="nav-link-custom" href="{{ url_for('main.universities_directory') }}">
-            <i class="fa fa-university text-primary"></i>Universities
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link-custom" href="{{ url_for('reports.list_reports') }}">
-            <i class="fa fa-magnifying-glass text-info"></i>Browse Items
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link-custom" href="{{ url_for('reports.campus_map') }}">
-            <i class="fa fa-map-location-dot text-success"></i>Campus Map
-          </a>
-        </li>
         {% if current_user %}
+          {% if current_user.role == 'admin' %}
+            <li class="nav-item">
+              <a class="nav-link-custom text-primary fw-bold" href="{{ url_for('admin.dashboard') }}">
+                <i class="fa fa-shield-halved text-primary"></i>Admin Command Center
+                {% if pending_approvals_count and pending_approvals_count > 0 %}
+                  <span class="badge rounded-pill bg-danger ms-1" style="font-size:0.7rem;">{{ pending_approvals_count }}</span>
+                {% endif %}
+              </a>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link-custom fw-semibold" href="{{ url_for('main.home') }}">
+                <i class="fa fa-gauge-high text-primary"></i>My Dashboard
+              </a>
+            </li>
+          {% endif %}
+          <li class="nav-item">
+            <a class="nav-link-custom" href="{{ url_for('reports.list_reports') }}">
+              <i class="fa fa-magnifying-glass text-info"></i>Campus Items
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-custom" href="{{ url_for('reports.campus_map') }}">
+              <i class="fa fa-map-location-dot text-success"></i>Campus Map
+            </a>
+          </li>
           <li class="nav-item">
             <a class="nav-link-custom" href="{{ url_for('tags.my_tags') }}">
               <i class="fa fa-qrcode text-warning"></i>Smart Tags
             </a>
           </li>
-          {% if current_user.role == 'admin' %}
-            <li class="nav-item">
-              <a class="nav-link-custom text-warning" href="{{ url_for('admin.dashboard') }}">
-                <i class="fa fa-shield-halved"></i>Admin Suite
-              </a>
-            </li>
-          {% endif %}
         {% endif %}
       </ul>
 
@@ -93,8 +97,10 @@
           <ul class="dropdown-menu dropdown-menu-end shadow-sm">
             <li><h6 class="dropdown-header text-muted">1-Click Hackathon Demo</h6></li>
             <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='student') }}"><i class="fa fa-user-graduate me-2 text-info"></i>Student (Sarah Jenkins)</a></li>
-            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='staff') }}"><i class="fa fa-user-shield me-2 text-success"></i>Security Officer (Marcus)</a></li>
-            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='admin') }}"><i class="fa fa-crown me-2 text-warning"></i>Campus Admin (Prof. Sterling)</a></li>
+            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='teacher') }}"><i class="fa fa-chalkboard-user me-2 text-primary"></i>Teacher (Dr. Eleanor Vance)</a></li>
+            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='staff') }}"><i class="fa fa-user-shield me-2 text-success"></i>Staff / Security (Marcus)</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='admin') }}"><i class="fa fa-crown me-2 text-warning"></i>Admin (Prof. Sterling)</a></li>
           </ul>
         </div>
 
@@ -114,14 +120,18 @@
                 {{ current_user.name[0] }}
               </div>
               <span style="font-size:0.88rem; font-weight:600; color:#0F172A;">{{ current_user.name.split()[0] }}</span>
+              <span class="badge bg-light text-dark border ms-1" style="font-size:0.68rem;">{{ current_user.role | capitalize }}</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               <li><div class="dropdown-item-text text-muted small"><i class="fa fa-id-badge me-1"></i>Role: <strong class="text-dark">{{ current_user.role | capitalize }}</strong></div></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item py-2" href="{{ url_for('reports.list_reports', mine=1, status='all') }}"><i class="fa fa-folder-open me-2 text-primary"></i>My Posted Reports</a></li>
-              <li><a class="dropdown-item py-2" href="{{ url_for('tags.my_tags') }}"><i class="fa fa-qrcode me-2 text-warning"></i>My Smart Tags</a></li>
               {% if current_user.role == 'admin' %}
-                <li><a class="dropdown-item py-2" href="{{ url_for('admin.dashboard') }}"><i class="fa fa-chart-line me-2 text-success"></i>Admin Command Center</a></li>
+                <li><a class="dropdown-item py-2" href="{{ url_for('admin.dashboard') }}"><i class="fa fa-shield-halved me-2 text-primary"></i>Admin Command Center</a></li>
+                <li><a class="dropdown-item py-2" href="{{ url_for('admin.export_csv') }}"><i class="fa fa-file-csv me-2 text-success"></i>Export Security Records (CSV)</a></li>
+              {% else %}
+                <li><a class="dropdown-item py-2" href="{{ url_for('main.home') }}"><i class="fa fa-gauge-high me-2 text-primary"></i>My Workspace</a></li>
+                <li><a class="dropdown-item py-2" href="{{ url_for('reports.list_reports', mine=1, status='all') }}"><i class="fa fa-folder-open me-2 text-info"></i>My Submitted Requests</a></li>
+                <li><a class="dropdown-item py-2" href="{{ url_for('tags.my_tags') }}"><i class="fa fa-qrcode me-2 text-warning"></i>My Smart Tags</a></li>
               {% endif %}
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('auth.logout') }}"><i class="fa fa-arrow-right-from-bracket me-2"></i>Logout</a></li>

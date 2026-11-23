@@ -6,7 +6,7 @@
 <!-- Breadcrumb / Back button -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">
-    <i class="fa fa-arrow-left me-1"></i>Back to Browse
+    <i class="fa fa-arrow-left me-1"></i>Back to Campus Items
   </a>
   <div class="d-flex gap-2">
     <a href="{{ url_for('reports.missing_poster', report_id=report._id) }}" target="_blank" class="btn btn-glass btn-sm" title="Generate Printable Notice Board Poster">
@@ -17,6 +17,42 @@
     </a>
   </div>
 </div>
+
+{% if report.status == 'pending_approval' %}
+  <div class="glass-panel p-4 mb-4" style="border: 1px solid #FCD34D; background: #FFFBEB;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div style="width:44px; height:44px; border-radius:12px; background:#FEF3C7; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+          <i class="fa fa-clock"></i>
+        </div>
+        <div>
+          <h6 class="fw-bold text-dark mb-0">Pending Campus Admin Approval</h6>
+          <p class="small text-secondary mb-0">
+            {% if is_admin %}
+              Submitted by <strong>{{ report.reporter_name }}</strong> ({{ report.reporter_role | capitalize if report.reporter_role else 'Student' }}). Review and approve to publish to the campus board.
+            {% else %}
+              Your submission has been received and is currently under review by Campus Administration. It will appear on the campus board once approved.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      {% if is_admin %}
+        <div class="d-flex gap-2">
+          <form method="post" action="{{ url_for('admin.approve_report', report_id=report._id) }}">
+            <button class="btn btn-glow-emerald btn-sm px-3">
+              <i class="fa fa-check me-1"></i>Approve &amp; Publish
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('admin.reject_report', report_id=report._id) }}">
+            <button class="btn btn-outline-danger btn-sm px-3">
+              <i class="fa fa-times me-1"></i>Reject
+            </button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
 
 <div class="row g-4 mb-5">
   <!-- Left Column: Item Overview -->
@@ -36,6 +72,10 @@
           </span>
           {% if report.status == 'resolved' %}
             <span class="badge-resolved"><i class="fa fa-check-double me-1"></i>Resolved / Recovered</span>
+          {% elif report.status == 'pending_approval' %}
+            <span class="badge bg-warning text-dark fw-bold"><i class="fa fa-clock me-1"></i>Pending Admin Approval</span>
+          {% elif report.status == 'rejected' %}
+            <span class="badge bg-danger text-white fw-bold"><i class="fa fa-ban me-1"></i>Rejected</span>
           {% else %}
             <span class="badge" style="background:rgba(99,102,241,0.2); color:#A5B4FC; border:1px solid rgba(99,102,241,0.3); font-weight:700;">Open Case</span>
           {% endif %}
@@ -253,10 +293,9 @@
 
             {% if c.status == 'pending' and report.status == 'open' %}
               <div class="d-flex gap-2">
-                <form method="post" action="{{ url_for('reports.decide_claim', claim_id=c._id) }}" class="flex-grow-1">
-                  <input type="hidden" name="decision" value="approved">
+                <form method="post" action="{{ url_for('admin.give_claim_item', claim_id=c._id) }}" class="flex-grow-1">
                   <button class="btn btn-glow-emerald btn-sm w-100">
-                    <i class="fa fa-check me-1"></i>Approve &amp; Issue Pass
+                    <i class="fa fa-handshake me-1"></i>Authorize Handover (Give Item)
                   </button>
                 </form>
                 <form method="post" action="{{ url_for('reports.decide_claim', claim_id=c._id) }}">

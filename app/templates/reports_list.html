@@ -64,6 +64,10 @@
       <select name="status" class="form-select-custom w-100">
         <option value="open" {{ 'selected' if args.get('status', 'open') == 'open' }}>Open Only</option>
         <option value="resolved" {{ 'selected' if args.get('status') == 'resolved' }}>Resolved</option>
+        {% if is_admin or args.get('mine') %}
+          <option value="pending_approval" {{ 'selected' if args.get('status') == 'pending_approval' }}>Awaiting Approval</option>
+          <option value="rejected" {{ 'selected' if args.get('status') == 'rejected' }}>Rejected</option>
+        {% endif %}
         <option value="all" {{ 'selected' if args.get('status') == 'all' }}>All Statuses</option>
       </select>
     </div>
@@ -114,6 +118,10 @@
               {% endif %}
               {% if r.status == 'resolved' %}
                 <span class="badge-resolved"><i class="fa fa-check-double me-1"></i>Resolved</span>
+              {% elif r.status == 'pending_approval' %}
+                <span class="badge bg-warning text-dark fw-bold"><i class="fa fa-clock me-1"></i>Pending</span>
+              {% elif r.status == 'rejected' %}
+                <span class="badge bg-danger text-white fw-bold"><i class="fa fa-ban me-1"></i>Rejected</span>
               {% endif %}
             </div>
           </div>

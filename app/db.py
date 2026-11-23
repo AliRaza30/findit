@@ -22,14 +22,17 @@ def init_db(app):
     """
     global _client, _db, _is_mock
 
+    if _db is not None:
+        return
+
     mongo_uri = app.config.get("MONGO_URI", "mongodb://localhost:27017")
     db_name = app.config.get("MONGO_DB_NAME", "findit")
     force_mock = os.getenv("USE_MOCK_DB", "").lower() in ("1", "true", "yes")
 
     if not force_mock:
         try:
-            # Test connection with 1.5s timeout
-            test_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=1500)
+            # Test connection with 3s timeout (compatible with MongoDB Atlas SRV)
+            test_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
             test_client.server_info()  # Will raise exception if server is down
             _client = test_client
             _db = _client[db_name]
@@ -243,6 +246,26 @@ def seed_demo_data(db):
     })
     db.users.insert_one({
         "university_id": apex_id,
+        "name": "Dr. Eleanor Vance (Teacher / Faculty)",
+        "email": "teacher@apex.edu",
+        "password_hash": hashed_pwd,
+        "role": "teacher",
+        "status": "active",
+        "phone": "+1 (617) 555-4321",
+        "created_at": three_days_ago,
+    })
+    db.users.insert_one({
+        "university_id": apex_id,
+        "name": "Dr. Eleanor Vance (Faculty & Lab Director)",
+        "email": "faculty@apex.edu",
+        "password_hash": hashed_pwd,
+        "role": "teacher",
+        "status": "active",
+        "phone": "+1 (617) 555-4321",
+        "created_at": three_days_ago,
+    })
+    db.users.insert_one({
+        "university_id": apex_id,
         "name": "Officer Marcus Cole (Security Desk)",
         "email": "security@apex.edu",
         "password_hash": hashed_pwd,
@@ -253,12 +276,12 @@ def seed_demo_data(db):
     })
     db.users.insert_one({
         "university_id": apex_id,
-        "name": "Dr. Eleanor Vance (Faculty & Lab Director)",
-        "email": "faculty@apex.edu",
+        "name": "Officer Marcus Cole (Campus Staff)",
+        "email": "staff@apex.edu",
         "password_hash": hashed_pwd,
         "role": "staff",
         "status": "active",
-        "phone": "+1 (617) 555-4321",
+        "phone": "+1 (617) 555-0199",
         "created_at": three_days_ago,
     })
 
@@ -362,6 +385,66 @@ def seed_demo_data(db):
         "created_at": three_days_ago,
     }
     db.reports.insert_one(rep5)
+
+    # Report 6: Pending Approval (Lost Calculator submitted by Student Sarah)
+    rep6 = {
+        "university_id": apex_id,
+        "reporter_id": sarah_id,
+        "reporter_name": "Sarah Jenkins",
+        "reporter_email": "sarah@apex.edu",
+        "reporter_role": "student",
+        "type": "lost",
+        "title": "TI-84 Plus CE Color Graphing Calculator",
+        "description": "Left on table 4 in Computer Science Innovation Lab after Calculus class. Has yellow 'Property of Sarah' tape on the sliding cover.",
+        "category": "Electronics",
+        "location": "Computer Science Innovation Lab",
+        "lat": 42.3610,
+        "lng": -71.0925,
+        "date": now.strftime("%Y-%m-%d"),
+        "image_url": "https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=800&auto=format&fit=crop&q=80",
+        "reward": "$20 Cash Reward",
+        "status": "pending_approval",
+        "created_at": now - timedelta(hours=3),
+    }
+    db.reports.insert_one(rep6)
+
+    # Report 7: Pending Approval (Found Hydro Flask submitted by Alex)
+    rep7 = {
+        "university_id": apex_id,
+        "reporter_id": alex_id,
+        "reporter_name": "Alex Vance",
+        "reporter_email": "alex@apex.edu",
+        "reporter_role": "student",
+        "type": "found",
+        "title": "Pacific Blue Hydro Flask 32oz Wide Mouth",
+        "description": "Found on the bleachers at the basketball court. Covered with assorted national parks stickers and flex cap.",
+        "category": "Other",
+        "location": "Campus Sports Complex & Gymnasium",
+        "lat": 42.3580,
+        "lng": -71.0968,
+        "date": now.strftime("%Y-%m-%d"),
+        "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&auto=format&fit=crop&q=80",
+        "security_question": "Which national park sticker is placed nearest to the lid?",
+        "status": "pending_approval",
+        "created_at": now - timedelta(hours=1),
+    }
+    db.reports.insert_one(rep7)
+
+    # Seed Sample Pending Claim on rep2 (MacBook) for Admin to test "Give Item" handover
+    db.claims.insert_one({
+        "university_id": apex_id,
+        "report_id": rep2_id,
+        "claimant_id": sarah_id,
+        "claimant_name": "Sarah Jenkins",
+        "claimant_email": "sarah@apex.edu",
+        "claimant_phone": "+1 (617) 555-8391",
+        "claimant_role": "student",
+        "kind": "ownership",
+        "message": "This is definitely my MacBook Pro M2! It was left on study desk 14. The serial number ends in 89X and it has my GitHub sticker on the back.",
+        "security_answer": "GitHub Octocat holographic sticker on top left of lid",
+        "status": "pending",
+        "created_at": yesterday + timedelta(hours=3),
+    })
 
     # Seed Smart Tags for Sarah
     db.tags.insert_one({

@@ -69,13 +69,13 @@ def allowed_image(filename):
 
 
 def save_image(file_storage):
-    """Saves image to Cloudinary (if configured) or local uploads folder; returns public URL."""
+    """Saves image to Cloudinary (if configured), local uploads folder, or base64 fallback on read-only serverless."""
     if not file_storage or not file_storage.filename:
         return None
     if not allowed_image(file_storage.filename):
         return None
 
-    if current_app.config["CLOUDINARY_URL"]:
+    if current_app.config.get("CLOUDINARY_URL"):
         try:
             import cloudinary.uploader
             result = cloudinary.uploader.upload(file_storage, folder="findit")
@@ -83,12 +83,25 @@ def save_image(file_storage):
         except Exception:
             pass  # fallback to local upload
 
-    folder = current_app.config["UPLOAD_FOLDER"]
-    os.makedirs(folder, exist_ok=True)
+    folder = current_app.config.get("UPLOAD_FOLDER")
     ext = secure_filename(file_storage.filename).rsplit(".", 1)[-1].lower()
     name = f"{uuid.uuid4().hex}.{ext}"
-    file_storage.save(os.path.join(folder, name))
-    return url_for("static", filename=f"uploads/{name}")
+
+    try:
+        os.makedirs(folder, exist_ok=True)
+        file_storage.save(os.path.join(folder, name))
+        return url_for("static", filename=f"uploads/{name}")
+    except OSError:
+        # Fallback for serverless read-only filesystems (e.g. Vercel)
+        import base64
+        try:
+            file_storage.seek(0)
+            data = file_storage.read()
+            mime = "image/" + (ext if ext in ("png", "jpg", "jpeg", "webp", "gif") else "jpeg")
+            encoded = base64.b64encode(data).decode("utf-8")
+            return f"data:{mime};base64,{encoded}"
+        except Exception:
+            return None
 
 
 def get_category_icon(category):
