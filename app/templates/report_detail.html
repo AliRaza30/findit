@@ -344,11 +344,20 @@
 
             {% if c.status == 'pending' and report.status == 'open' %}
               <div class="d-flex gap-2">
-                <form method="post" action="{{ url_for('admin.give_claim_item', claim_id=c._id) }}" class="flex-grow-1">
-                  <button class="btn btn-glow-emerald btn-sm w-100">
-                    <i class="fa fa-handshake me-1"></i>Authorize Handover (Give Item)
-                  </button>
-                </form>
+                {% if is_admin %}
+                  <form method="post" action="{{ url_for('admin.give_claim_item', claim_id=c._id) }}" class="flex-grow-1">
+                    <button class="btn btn-glow-emerald btn-sm w-100">
+                      <i class="fa fa-handshake me-1"></i>Authorize Handover (Give Item)
+                    </button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{{ url_for('reports.decide_claim', claim_id=c._id) }}" class="flex-grow-1">
+                    <input type="hidden" name="decision" value="approved">
+                    <button class="btn btn-glow-emerald btn-sm w-100">
+                      <i class="fa fa-check me-1"></i>Confirm &amp; Accept Claim
+                    </button>
+                  </form>
+                {% endif %}
                 <form method="post" action="{{ url_for('reports.decide_claim', claim_id=c._id) }}">
                   <input type="hidden" name="decision" value="rejected">
                   <button class="btn btn-glass btn-sm text-danger" title="Reject Claim">

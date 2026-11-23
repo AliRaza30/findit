@@ -122,8 +122,8 @@
 
 {% block extra_scripts %}
 <script>
-  const defaultCenter = {{ default_center | tojson }};
-  const pinsData = {{ map_pins | tojson }};
+  const defaultCenter = {{ (default_center or [42.3601, -71.0942]) | tojson }};
+  const pinsData = {{ (map_pins or []) | tojson }};
 
   const map = L.map('campus-leaflet-map', {
     center: defaultCenter,

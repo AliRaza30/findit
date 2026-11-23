@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
   <div class="col-md-9 col-lg-7">
     <div class="mb-4">
-      <h3 class="fw-800 text-white mb-1">Manage <span class="brand-gradient-text">{{ title }}</span></h3>
+      <h3 class="fw-800 text-dark mb-1">Manage <span class="brand-gradient-text">{{ title }}</span></h3>
       <p class="text-secondary small mb-0">Configure available campus options for student and staff reports.</p>
     </div>
 
@@ -24,8 +24,8 @@
       {% if items %}
         <div class="d-flex flex-column gap-2">
           {% for item in items %}
-            <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
-              <span class="text-white fw-bold">
+            <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background:#FFFFFF; border:1px solid #E2E8F0; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+              <span class="text-dark fw-bold">
                 <i class="fa fa-{% if 'Categor' in title %}tag text-primary{% else %}location-dot text-danger{% endif %} me-2"></i>
                 {{ item }}
               </span>

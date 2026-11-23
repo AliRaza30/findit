@@ -87,6 +87,21 @@ def universities_directory():
     return render_template("universities_finder.html", universities=unis, search_query=query, selected_country=country, countries=countries)
 
 
+@bp.route("/explore/<slug>")
+@login_required
+def explore_university(slug):
+    """
+    Explore a specific university's campus items and activity.
+    """
+    db = get_db()
+    uni = db.universities.find_one({"slug": slug})
+    if not uni:
+        flash("University not found.", "warning")
+        return redirect(url_for("main.universities_directory"))
+    session["guest_uni_slug"] = slug
+    return redirect(url_for("reports.list_reports"))
+
+
 @bp.route("/demo-login/<role>")
 def demo_login(role):
     """

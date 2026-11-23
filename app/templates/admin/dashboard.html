@@ -395,8 +395,8 @@
 {% block extra_scripts %}
 <script>
   // Category Donut Chart
-  const catLabels = {{ chart_categories | tojson }};
-  const catData = {{ chart_category_counts | tojson }};
+  const catLabels = {{ (chart_categories or []) | tojson }};
+  const catData = {{ (chart_category_counts or []) | tojson }};
 
   new Chart(document.getElementById('categoryChart'), {
     type: 'doughnut',
@@ -419,8 +419,8 @@
   });
 
   // Location Hotspots Bar Chart
-  const locLabels = {{ chart_locations | tojson }};
-  const locData = {{ chart_location_counts | tojson }};
+  const locLabels = {{ (chart_locations or []) | tojson }};
+  const locData = {{ (chart_location_counts or []) | tojson }};
 
   new Chart(document.getElementById('locationChart'), {
     type: 'bar',

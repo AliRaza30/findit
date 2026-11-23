@@ -20,35 +20,35 @@
 
       <!-- Header -->
       <div class="text-center pb-3 border-bottom border-secondary border-opacity-25 mb-4 mt-2">
-        <span class="badge" style="background:rgba(16,185,129,0.2); color:#34D399; font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">
+        <span class="badge" style="background:rgba(16,185,129,0.2); color:#059669; font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">
           <i class="fa fa-shield-check me-1"></i>Authorized Security Clearance
         </span>
-        <h3 class="fw-800 text-white mt-2 mb-1">Campus Handover Pass</h3>
+        <h3 class="fw-800 text-dark mt-2 mb-1">Campus Handover Pass</h3>
         <p class="small text-secondary mb-0">{{ university.name }} · Official Item Retrieval Voucher</p>
       </div>
 
       <!-- Verification QR Code -->
       <div class="text-center mb-4">
-        <div class="d-inline-block p-3 rounded" style="background:#fff; box-shadow:0 8px 25px rgba(0,0,0,0.4);" id="pass-qrcode"></div>
-        <div class="fw-bold text-white mt-2 font-monospace" style="font-size:1.25rem; letter-spacing:2px;">
+        <div class="d-inline-block p-3 rounded" style="background:#fff; box-shadow:0 8px 25px rgba(0,0,0,0.15); border:1px solid #E2E8F0;" id="pass-qrcode"></div>
+        <div class="fw-bold text-dark mt-2 font-monospace" style="font-size:1.25rem; letter-spacing:2px;">
           {{ verification_code }}
         </div>
-        <div class="text-dim small">Scan at Security Desk for Handover Approval</div>
+        <div class="text-secondary small">Scan at Security Desk for Handover Approval</div>
       </div>
 
       <!-- Details List -->
-      <div class="rounded p-3 mb-4" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
+      <div class="rounded p-3 mb-4" style="background:#FFFFFF; border:1px solid #E2E8F0; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
         <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
           <span class="small text-secondary">Recovered Item:</span>
-          <strong class="small text-white">{{ report.title }}</strong>
+          <strong class="small text-dark">{{ report.title }}</strong>
         </div>
         <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
           <span class="small text-secondary">Campus Category:</span>
-          <strong class="small text-white">{{ report.category }}</strong>
+          <strong class="small text-dark">{{ report.category }}</strong>
         </div>
         <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
           <span class="small text-secondary">Authorized Recipient (Owner):</span>
-          <strong class="small text-white">
+          <strong class="small text-dark">
             {% if report.type == 'lost' %}
               {{ report.reporter_name }}
             {% else %}
@@ -59,12 +59,12 @@
         {% if claim and report.type == 'lost' %}
           <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
             <span class="small text-secondary">Found &amp; Turned In By:</span>
-            <strong class="small text-white">{{ claim.claimant_name }}</strong>
+            <strong class="small text-dark">{{ claim.claimant_name }}</strong>
           </div>
         {% endif %}
         <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
           <span class="small text-secondary">Pickup Location:</span>
-          <strong class="small text-white">{{ university.security_office or 'Central Security Desk Room 104' }}</strong>
+          <strong class="small text-dark">{{ university.security_office or 'Central Security Desk Room 104' }}</strong>
         </div>
         <div class="d-flex justify-content-between py-2">
           <span class="small text-secondary">Status:</span>
@@ -74,7 +74,7 @@
 
       <!-- Security Desk Instructions -->
       <div class="p-3 rounded mb-2 text-center" style="background:rgba(99,102,241,0.08); border:1px dashed rgba(99,102,241,0.3);">
-        <div class="small fw-bold text-white mb-1"><i class="fa fa-circle-info text-info me-1"></i>Campus Guard Instructions</div>
+        <div class="small fw-bold text-dark mb-1"><i class="fa fa-circle-info text-primary me-1"></i>Campus Guard Instructions</div>
         <p class="small text-secondary mb-0">Present this digital pass alongside your student/staff ID card at the safety office to claim your possession.</p>
       </div>
     </div>
