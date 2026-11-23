@@ -73,7 +73,7 @@ def create_app():
             "university": g.get("university"),
             "unread_notifs_count": g.get("unread_notifs_count", 0),
             "pending_approvals_count": g.get("pending_approvals_count", 0),
-            "total_universities": db.universities.count_documents({}) if db else 0,
+            "total_universities": db.universities.count_documents({}) if db is not None else 0,
         }
 
     return app
