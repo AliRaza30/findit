@@ -20,13 +20,6 @@
         <div class="small text-secondary"><i class="fa fa-tag me-1 text-primary"></i>{{ tag.category or 'Personal Item' }}</div>
       </div>
 
-      {% if tag.reward_message %}
-        <div class="p-3 rounded mb-3" style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); color:#FCD34D;">
-          <div class="fw-bold small mb-1"><i class="fa fa-gift me-1"></i>Owner Reward Message:</div>
-          <div class="small">{{ tag.reward_message }}</div>
-        </div>
-      {% endif %}
-
       <form method="post">
         <div class="mb-3">
           <label class="form-label-custom">

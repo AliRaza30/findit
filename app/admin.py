@@ -33,7 +33,7 @@ def _list_field(field):
 
 
 @bp.route("/")
-@admin_required
+@admin_required # access control security rule
 def dashboard():
     db = get_db()
     uid = g.university["_id"]

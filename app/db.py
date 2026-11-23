@@ -1,9 +1,13 @@
+import logging
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+
+from pymongo import ASCENDING, MongoClient
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from werkzeug.security import generate_password_hash
-from pymongo import MongoClient, ASCENDING, TEXT
-from pymongo.errors import ServerSelectionTimeoutError, ConnectionFailure
+
+logger = logging.getLogger(__name__)
 
 _client = None
 _db = None
@@ -15,58 +19,50 @@ def _now():
 
 
 def init_db(app):
-    """
-    Connects to MongoDB with automatic graceful fallback to mongomock
-    if MongoDB is not reachable or in restricted sandbox/offline environments.
-    Seeds rich sample university data if the database is newly initialized.
-    """
+    """Initializes MongoDB connection using Config URI with seamless fallback to MongoMock."""
     global _client, _db, _is_mock
-
-    if _db is not None:
-        return
 
     mongo_uri = app.config.get("MONGO_URI", "mongodb://localhost:27017")
     db_name = app.config.get("MONGO_DB_NAME", "findit")
-    force_mock = os.getenv("USE_MOCK_DB", "").lower() in ("1", "true", "yes")
 
-    if not force_mock:
+    try:
+        # Use short serverSelectionTimeoutMS so we fail fast to mock in isolated local testing
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=4000)
+        client.admin.command("ping")
+        _client = client
+        _db = client[db_name]
+        _is_mock = False
+        print(f"[FindIt DB] Connected successfully to MongoDB at {mongo_uri} (Database: {db_name})")
+    except Exception as e:
+        print(f"[FindIt DB] MongoDB connection error ({e}). Falling back to MongoMock in-memory engine.")
         try:
-            # Test connection with 3s timeout (compatible with MongoDB Atlas SRV)
-            test_client = MongoClient(mongo_uri, serverSelectionTimeoutMS=3000)
-            test_client.server_info()  # Will raise exception if server is down
-            _client = test_client
-            _db = _client[db_name]
-            _is_mock = False
-            print(f"[FindIt DB] Connected successfully to MongoDB at {mongo_uri} (Database: {db_name})")
-        except Exception as e:
-            print(f"[FindIt DB] MongoDB connection error ({e}). Falling back to MongoMock in-memory engine.")
             import mongomock
             _client = mongomock.MongoClient()
             _db = _client[db_name]
             _is_mock = True
-    else:
-        import mongomock
-        _client = mongomock.MongoClient()
-        _db = _client[db_name]
-        _is_mock = True
-        print(f"[FindIt DB] USE_MOCK_DB flag active: using MongoMock in-memory engine.")
+        except ImportError:
+            raise RuntimeError("Neither live MongoDB nor mongomock is available. Please install mongomock: pip install mongomock")
 
-    # Create Indexes safely
+    # Set up indexes safely
     try:
-        _db.universities.create_index([("slug", ASCENDING)], unique=True)
+        _db.universities.create_index("slug", unique=True)
         _db.users.create_index([("university_id", ASCENDING), ("email", ASCENDING)], unique=True)
         _db.reports.create_index([("university_id", ASCENDING), ("status", ASCENDING)])
-        _db.reports.create_index([("title", TEXT), ("description", TEXT)])
-        _db.claims.create_index([("university_id", ASCENDING), ("report_id", ASCENDING)])
-        _db.tags.create_index([("tag_code", ASCENDING)], unique=True)
+        _db.reports.create_index([("university_id", ASCENDING), ("type", ASCENDING)])
+        _db.claims.create_index([("report_id", ASCENDING), ("claimant_id", ASCENDING)])
+        _db.tags.create_index("tag_code", unique=True)
         _db.notifications.create_index([("user_id", ASCENDING), ("is_read", ASCENDING)])
-    except Exception as e:
-        # Some mock engines have partial index support; ignore non-fatal index warnings
+    except Exception as idx_err:
         pass
 
-    # Check if DB is empty; if so, automatically seed demo data for hackathon presentation
-    if _db.universities.count_documents({}) == 0:
-        seed_demo_data(_db)
+    # Check if DB is empty; if so, automatically seed Pakistani universities data
+    try:
+        if _db.universities.count_documents({}) == 0:
+            seed_demo_data(_db)
+    except Exception as seed_err:
+        print(f"[FindIt DB] Note during initial check: {seed_err}")
+
+    return _db
 
 
 def get_db():
@@ -78,410 +74,541 @@ def is_mock_db():
 
 
 def seed_demo_data(db):
-    """Seeds rich, realistic data for an international hackathon showcase."""
-    print("[FindIt DB] Seeding initial university workspaces, users, reports, and tags...")
+    """Seeds realistic Pakistani universities, users, and lost items using existing project images."""
+    print("[FindIt DB] Seeding Pakistani universities, users, and campus lost records...")
 
     now = _now()
     yesterday = now - timedelta(days=1)
     two_days_ago = now - timedelta(days=2)
     three_days_ago = now - timedelta(days=3)
 
-    # University 1: Apex International University
-    apex = {
-        "name": "Apex University of Science & Technology",
-        "slug": "apex-university",
-        "city": "Boston, MA",
-        "country": "United States",
-        "established": 1968,
-        "campus_size": "140 Acres",
-        "total_students": "18,500+",
-        "recovery_rate": 87,
-        "security_hotline": "+1 (617) 555-0199",
-        "security_office": "Student Center, Room 104 (Lost & Found Central Desk)",
+    hashed_pwd = generate_password_hash("password123")
+
+    # ================= 1. NUST ISLAMABAD =================
+    nust = {
+        "name": "National University of Sciences & Technology (NUST)",
+        "slug": "nust-islamabad",
+        "city": "Islamabad",
+        "country": "Pakistan",
+        "established": 1991,
+        "campus_size": "Sector H-12, 700 Acres",
+        "total_students": "15,000+",
+        "recovery_rate": 91,
+        "security_hotline": "+92 (51) 9085-1199",
+        "security_office": "Sector H-12 Main Security Directorate & Lost Property Office",
         "logo_url": "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=128&auto=format&fit=crop&q=80",
         "cover_url": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&auto=format&fit=crop&q=80",
-        "verification_mode": "open",
-        "email_domain": "apex.edu",
-        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags & Backpacks", "Clothing & Gear", "Watches & Jewelry", "Books & Study Material"],
-        "locations": [
-            "Central Library - 2nd Floor Quiet Zone",
-            "Student Union Cafeteria",
-            "Engineering Lecture Hall Block B",
-            "Campus Sports Complex & Gymnasium",
-            "Main Campus Gate & Bus Terminal",
-            "Computer Science Innovation Lab",
-            "Dormitory Quadrant A",
-            "Science Park Courtyard"
-        ],
-        "location_coords": {
-            "Central Library - 2nd Floor Quiet Zone": {"lat": 42.3601, "lng": -71.0942},
-            "Student Union Cafeteria": {"lat": 42.3592, "lng": -71.0930},
-            "Engineering Lecture Hall Block B": {"lat": 42.3615, "lng": -71.0955},
-            "Campus Sports Complex & Gymnasium": {"lat": 42.3580, "lng": -71.0968},
-            "Main Campus Gate & Bus Terminal": {"lat": 42.3570, "lng": -71.0920},
-            "Computer Science Innovation Lab": {"lat": 42.3610, "lng": -71.0925},
-            "Dormitory Quadrant A": {"lat": 42.3622, "lng": -71.0910},
-            "Science Park Courtyard": {"lat": 42.3598, "lng": -71.0960}
-        },
-        "created_at": three_days_ago,
-    }
-    apex_id = db.universities.insert_one(apex).inserted_id
-
-    # University 2: Stanford Global Campus
-    stanford = {
-        "name": "Stanford University Global Campus",
-        "slug": "stanford",
-        "city": "Stanford, CA",
-        "country": "United States",
-        "established": 1885,
-        "campus_size": "8,180 Acres",
-        "total_students": "17,000+",
-        "recovery_rate": 92,
-        "security_hotline": "+1 (650) 723-9633",
-        "security_office": "Tresidder Memorial Union Lost & Found Center",
-        "logo_url": "https://images.unsplash.com/photo-1562774053-701939374585?w=128&auto=format&fit=crop&q=80",
-        "cover_url": "https://images.unsplash.com/photo-1562774053-701939374585?w=1200&auto=format&fit=crop&q=80",
-        "verification_mode": "email_domain",
-        "email_domain": "stanford.edu",
-        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags", "Other"],
-        "locations": ["Green Library", "Tresidder Union", "Huang Engineering Center", "Arrillaga Gym", "Oval Courtyard"],
-        "location_coords": {
-            "Green Library": {"lat": 37.4265, "lng": -122.1668},
-            "Tresidder Union": {"lat": 37.4230, "lng": -122.1702},
-            "Huang Engineering Center": {"lat": 37.4278, "lng": -122.1740},
-            "Arrillaga Gym": {"lat": 37.4282, "lng": -122.1610},
-            "Oval Courtyard": {"lat": 37.4290, "lng": -122.1695}
-        },
-        "created_at": three_days_ago,
-    }
-    db.universities.insert_one(stanford)
-
-    # University 3: Oxford Technology Institute
-    oxford = {
-        "name": "Oxford Technology & Innovation Institute",
-        "slug": "oxford-tech",
-        "city": "Oxford",
-        "country": "United Kingdom",
-        "established": 1096,
-        "campus_size": "Historic Campus",
-        "total_students": "24,000+",
-        "recovery_rate": 89,
-        "security_hotline": "+44 1865 270000",
-        "security_office": "Radcliffe Square Security Post",
-        "logo_url": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=128&auto=format&fit=crop&q=80",
-        "cover_url": "https://images.unsplash.com/photo-1548013146-72479768bada?w=1200&auto=format&fit=crop&q=80",
         "verification_mode": "admin_approval",
-        "email_domain": "oxford.ac.uk",
-        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Clothing", "Bicycles & Parts"],
-        "locations": ["Radcliffe Camera", "Bodleian Library", "University Parks", "Sheldonian Theatre"],
+        "email_domain": "nust.edu.pk",
+        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags & Backpacks", "Clothing & Gear", "Watches & Jewelry", "Books & Study Material"],
+        "locations": ["Central Library - 2nd Floor Quiet Zone", "Concordia 1 Cafeteria", "SEECS Lecture Hall Block B", "Sports Complex & Gymnasium", "H-12 Main Gate & Bus Terminal", "RIMMS Research Lab"],
         "location_coords": {
-            "Radcliffe Camera": {"lat": 51.7534, "lng": -1.2540},
-            "Bodleian Library": {"lat": 51.7540, "lng": -1.2550},
-            "University Parks": {"lat": 51.7610, "lng": -1.2560},
-            "Sheldonian Theatre": {"lat": 51.7548, "lng": -1.2558}
+            "Central Library - 2nd Floor Quiet Zone": {"lat": 33.6425, "lng": 72.9904},
+            "Concordia 1 Cafeteria": {"lat": 33.6432, "lng": 72.9918},
+            "SEECS Lecture Hall Block B": {"lat": 33.6441, "lng": 72.9930},
+            "Sports Complex & Gymnasium": {"lat": 33.6410, "lng": 72.9880},
+            "H-12 Main Gate & Bus Terminal": {"lat": 33.6400, "lng": 72.9950},
+            "RIMMS Research Lab": {"lat": 33.6450, "lng": 72.9910}
         },
         "created_at": three_days_ago,
     }
-    db.universities.insert_one(oxford)
+    nust_id = db.universities.insert_one(nust).inserted_id
 
-    # Seed Users for Apex University
-    hashed_pwd = generate_password_hash("password123")
-    admin_user = {
-        "university_id": apex_id,
-        "name": "Prof. Robert Sterling",
-        "email": "admin@apex.edu",
+    # NUST Users
+    nust_admin_id = db.users.insert_one({
+        "university_id": nust_id,
+        "name": "Dr. Muhammad Tariq (Registrar & Admin)",
+        "email": "admin@nust.edu.pk",
         "password_hash": hashed_pwd,
         "role": "admin",
         "status": "active",
         "created_at": three_days_ago,
-    }
-    admin_id = db.users.insert_one(admin_user).inserted_id
+    }).inserted_id
 
-    student_sarah = {
-        "university_id": apex_id,
-        "name": "Sarah Jenkins",
-        "email": "sarah@apex.edu",
+    nust_student_id = db.users.insert_one({
+        "university_id": nust_id,
+        "name": "Hamza Ahmed",
+        "email": "hamza.ahmed@nust.edu.pk",
         "password_hash": hashed_pwd,
         "role": "student",
         "status": "active",
-        "phone": "+1 (617) 555-8391",
+        "phone": "+92 300 5551234",
         "created_at": three_days_ago,
-    }
-    sarah_id = db.users.insert_one(student_sarah).inserted_id
+    }).inserted_id
 
-    student_alex = {
-        "university_id": apex_id,
-        "name": "Alex Vance",
-        "email": "alex@apex.edu",
-        "password_hash": hashed_pwd,
-        "role": "student",
-        "status": "active",
-        "phone": "+1 (617) 555-2041",
-        "created_at": two_days_ago,
-    }
-    alex_id = db.users.insert_one(student_alex).inserted_id
-
-    staff_officer = {
-        "university_id": apex_id,
-        "name": "Officer Marcus Cole",
-        "email": "marcus.security@apex.edu",
-        "password_hash": hashed_pwd,
-        "role": "staff",
-        "status": "active",
-        "phone": "+1 (617) 555-0199",
-        "created_at": three_days_ago,
-    }
-    marcus_id = db.users.insert_one(staff_officer).inserted_id
-
-    # Additional Demo Role Accounts for Judges & Showcase
-    db.users.insert_one({
-        "university_id": apex_id,
-        "name": "Sarah Jenkins (Student)",
-        "email": "student@apex.edu",
-        "password_hash": hashed_pwd,
-        "role": "student",
-        "status": "active",
-        "phone": "+1 (617) 555-8391",
-        "created_at": three_days_ago,
-    })
-    db.users.insert_one({
-        "university_id": apex_id,
-        "name": "Dr. Eleanor Vance (Teacher / Faculty)",
-        "email": "teacher@apex.edu",
+    nust_teacher_id = db.users.insert_one({
+        "university_id": nust_id,
+        "name": "Prof. Ayesha Malik",
+        "email": "ayesha.malik@nust.edu.pk",
         "password_hash": hashed_pwd,
         "role": "teacher",
         "status": "active",
-        "phone": "+1 (617) 555-4321",
+        "phone": "+92 301 5554321",
         "created_at": three_days_ago,
-    })
+    }).inserted_id
+
     db.users.insert_one({
-        "university_id": apex_id,
-        "name": "Dr. Eleanor Vance (Faculty & Lab Director)",
-        "email": "faculty@apex.edu",
-        "password_hash": hashed_pwd,
-        "role": "teacher",
-        "status": "active",
-        "phone": "+1 (617) 555-4321",
-        "created_at": three_days_ago,
-    })
-    db.users.insert_one({
-        "university_id": apex_id,
-        "name": "Officer Marcus Cole (Security Desk)",
-        "email": "security@apex.edu",
+        "university_id": nust_id,
+        "name": "Subedar (R) Muhammad Rasheed",
+        "email": "security@nust.edu.pk",
         "password_hash": hashed_pwd,
         "role": "staff",
         "status": "active",
-        "phone": "+1 (617) 555-0199",
-        "created_at": three_days_ago,
-    })
-    db.users.insert_one({
-        "university_id": apex_id,
-        "name": "Officer Marcus Cole (Campus Staff)",
-        "email": "staff@apex.edu",
-        "password_hash": hashed_pwd,
-        "role": "staff",
-        "status": "active",
-        "phone": "+1 (617) 555-0199",
+        "phone": "+92 302 5559876",
         "created_at": three_days_ago,
     })
 
-    # Seed Reports for Apex University
-    # Report 1: Lost MacBook
-    rep1 = {
-        "university_id": apex_id,
-        "reporter_id": sarah_id,
-        "reporter_name": "Sarah Jenkins",
+    # NUST Lost Items (Existing pictures only, no reward)
+    nust_rep1_id = db.reports.insert_one({
+        "university_id": nust_id,
+        "reporter_id": nust_student_id,
+        "reporter_name": "Hamza Ahmed",
+        "reporter_email": "hamza.ahmed@nust.edu.pk",
+        "reporter_role": "student",
         "type": "lost",
         "title": "Space Grey Apple MacBook Pro 14 M2",
-        "description": "Left on desk 14 by the large window overlooking courtyard around 3:15 PM. Has a GitHub Octocat holographic sticker and transparent matte case.",
+        "description": "Left on desk 14 by the window in Central Library around 3:15 PM. Has a GitHub sticker on the back lid.",
         "category": "Electronics",
         "location": "Central Library - 2nd Floor Quiet Zone",
-        "lat": 42.3601,
-        "lng": -71.0942,
+        "lat": 33.6425,
+        "lng": 72.9904,
         "date": yesterday.strftime("%Y-%m-%d"),
         "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80",
-        "reward": "$50 Cash Reward",
         "status": "open",
         "created_at": yesterday,
-    }
-    rep1_id = db.reports.insert_one(rep1).inserted_id
+    }).inserted_id
 
-    # Report 2: Found MacBook (Smart Match!)
-    rep2 = {
-        "university_id": apex_id,
-        "reporter_id": alex_id,
-        "reporter_name": "Alex Vance",
-        "type": "found",
-        "title": "Apple MacBook Pro 14 inch in Space Grey",
-        "description": "Found unattended on study desk 14 on 2nd floor library near courtyard window. Handed in safely to Central Library Front Reception Desk with charger.",
-        "category": "Electronics",
-        "location": "Central Library - 2nd Floor Quiet Zone",
-        "lat": 42.3601,
-        "lng": -71.0942,
-        "date": yesterday.strftime("%Y-%m-%d"),
-        "image_url": "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&auto=format&fit=crop&q=80",
-        "security_question": "What holographic sticker is located on the back lid?",
-        "status": "open",
-        "created_at": yesterday + timedelta(hours=2),
-    }
-    rep2_id = db.reports.insert_one(rep2).inserted_id
-
-    # Report 3: Lost Wallet
-    rep3 = {
-        "university_id": apex_id,
-        "reporter_id": sarah_id,
-        "reporter_name": "Sarah Jenkins",
+    db.reports.insert_one({
+        "university_id": nust_id,
+        "reporter_id": nust_teacher_id,
+        "reporter_name": "Prof. Ayesha Malik",
+        "reporter_email": "ayesha.malik@nust.edu.pk",
+        "reporter_role": "teacher",
         "type": "lost",
         "title": "Vintage Brown Leather Fossil Bifold Wallet",
-        "description": "Contains Apex University Student ID card for Sarah Jenkins, CharlieCard subway pass, and family photo. Please return if found!",
+        "description": "Contains NUST Faculty Card for Prof. Ayesha Malik, CNIC, and Metro Card. Please return if found.",
         "category": "Wallet",
-        "location": "Student Union Cafeteria",
-        "lat": 42.3592,
-        "lng": -71.0930,
+        "location": "Concordia 1 Cafeteria",
+        "lat": 33.6432,
+        "lng": 72.9918,
         "date": two_days_ago.strftime("%Y-%m-%d"),
         "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?w=800&auto=format&fit=crop&q=80",
-        "reward": "Free Coffee for a Week + Gratitude",
         "status": "open",
         "created_at": two_days_ago,
-    }
-    rep3_id = db.reports.insert_one(rep3).inserted_id
+    })
 
-    # Report 4: Found Sony Headphones
-    rep4 = {
-        "university_id": apex_id,
-        "reporter_id": marcus_id,
-        "reporter_name": "Officer Marcus Cole",
-        "type": "found",
-        "title": "Sony WH-1000XM5 Noise Cancelling Headphones",
-        "description": "Midnight black Sony over-ear headphones found in grey zippered travel pouch on locker bench. Currently secured in Campus Safety Office Room 104.",
-        "category": "Electronics",
-        "location": "Campus Sports Complex & Gymnasium",
-        "lat": 42.3580,
-        "lng": -71.0968,
-        "date": now.strftime("%Y-%m-%d"),
-        "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
-        "security_question": "What color is the audio cable inside the travel pouch?",
-        "status": "open",
-        "created_at": now,
-    }
-    rep4_id = db.reports.insert_one(rep4).inserted_id
 
-    # Report 5: Resolved Keys
-    rep5 = {
-        "university_id": apex_id,
-        "reporter_id": alex_id,
-        "reporter_name": "Alex Vance",
-        "type": "found",
-        "title": "Set of Dorm Keys with Blue NASA Lanyard",
-        "description": "Found on front row desk in Lecture Hall B. Returned to rightful owner via security desk.",
-        "category": "Keys",
-        "location": "Engineering Lecture Hall Block B",
-        "lat": 42.3615,
-        "lng": -71.0955,
-        "date": three_days_ago.strftime("%Y-%m-%d"),
-        "image_url": "https://images.unsplash.com/photo-1582139329536-e7284fece509?w=800&auto=format&fit=crop&q=80",
-        "status": "resolved",
-        "resolved_at": yesterday,
+    # ================= 2. FAST NUCES LAHORE =================
+    fast = {
+        "name": "FAST NUCES - National University of Computer & Emerging Sciences",
+        "slug": "fast-nuces-lahore",
+        "city": "Lahore",
+        "country": "Pakistan",
+        "established": 2000,
+        "campus_size": "Faisal Town Campus, 12 Acres",
+        "total_students": "6,500+",
+        "recovery_rate": 89,
+        "security_hotline": "+92 (42) 111-128-128",
+        "security_office": "Block B Security Office & Lost Property Desk Room 102",
+        "logo_url": "https://images.unsplash.com/photo-1562774053-701939374585?w=128&auto=format&fit=crop&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1562774053-701939374585?w=1200&auto=format&fit=crop&q=80",
+        "verification_mode": "admin_approval",
+        "email_domain": "nu.edu.pk",
+        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags & Backpacks", "Clothing & Gear", "Watches & Jewelry", "Books & Study Material"],
+        "locations": ["CS Innovation Lab Block B", "Campus Cafeteria & Lawn", "Main Library Reading Hall", "Sports Ground Court", "Main Gate Reception"],
+        "location_coords": {
+            "CS Innovation Lab Block B": {"lat": 31.4815, "lng": 74.3030},
+            "Campus Cafeteria & Lawn": {"lat": 31.4810, "lng": 74.3038},
+            "Main Library Reading Hall": {"lat": 31.4820, "lng": 74.3025},
+            "Sports Ground Court": {"lat": 31.4805, "lng": 74.3045},
+            "Main Gate Reception": {"lat": 31.4825, "lng": 74.3020}
+        },
         "created_at": three_days_ago,
     }
-    db.reports.insert_one(rep5)
+    fast_id = db.universities.insert_one(fast).inserted_id
 
-    # Report 6: Pending Approval (Lost Calculator submitted by Student Sarah)
-    rep6 = {
-        "university_id": apex_id,
-        "reporter_id": sarah_id,
-        "reporter_name": "Sarah Jenkins",
-        "reporter_email": "sarah@apex.edu",
+    # FAST Users
+    fast_admin_id = db.users.insert_one({
+        "university_id": fast_id,
+        "name": "Dr. Zeeshan Ali (Director Admin)",
+        "email": "admin@nu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "admin",
+        "status": "active",
+        "created_at": three_days_ago,
+    }).inserted_id
+
+    fast_student_id = db.users.insert_one({
+        "university_id": fast_id,
+        "name": "Fatima Zahra",
+        "email": "fatima.zahra@nu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "student",
+        "status": "active",
+        "phone": "+92 321 4441122",
+        "created_at": three_days_ago,
+    }).inserted_id
+
+    fast_teacher_id = db.users.insert_one({
+        "university_id": fast_id,
+        "name": "Dr. Farhan Siddiqui (HOD Software Engineering)",
+        "email": "farhan.siddiqui@nu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "teacher",
+        "status": "active",
+        "phone": "+92 322 4443344",
+        "created_at": three_days_ago,
+    }).inserted_id
+
+    db.users.insert_one({
+        "university_id": fast_id,
+        "name": "Muhammad Aslam (Security Supervisor)",
+        "email": "security@nu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "staff",
+        "status": "active",
+        "phone": "+92 323 4445566",
+        "created_at": three_days_ago,
+    })
+
+    # FAST Lost Items
+    db.reports.insert_one({
+        "university_id": fast_id,
+        "reporter_id": fast_student_id,
+        "reporter_name": "Fatima Zahra",
+        "reporter_email": "fatima.zahra@nu.edu.pk",
+        "reporter_role": "student",
+        "type": "lost",
+        "title": "Sony WH-1000XM5 Noise Cancelling Headphones",
+        "description": "Black over-ear Sony headphones in a grey zippered pouch. Left near computer workstation #18.",
+        "category": "Electronics",
+        "location": "CS Innovation Lab Block B",
+        "lat": 31.4815,
+        "lng": 74.3030,
+        "date": yesterday.strftime("%Y-%m-%d"),
+        "image_url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+        "status": "open",
+        "created_at": yesterday,
+    })
+
+    db.reports.insert_one({
+        "university_id": fast_id,
+        "reporter_id": fast_teacher_id,
+        "reporter_name": "Dr. Farhan Siddiqui",
+        "reporter_email": "farhan.siddiqui@nu.edu.pk",
+        "reporter_role": "teacher",
+        "type": "lost",
+        "title": "Set of Dorm Keys with Blue NASA Lanyard",
+        "description": "Three silver keys attached to a blue NASA lanyard. Misplaced after lab class.",
+        "category": "Keys",
+        "location": "Campus Cafeteria & Lawn",
+        "lat": 31.4810,
+        "lng": 74.3038,
+        "date": two_days_ago.strftime("%Y-%m-%d"),
+        "image_url": "https://images.unsplash.com/photo-1582139329536-e7284fece509?w=800&auto=format&fit=crop&q=80",
+        "status": "open",
+        "created_at": two_days_ago,
+    })
+
+
+    # ================= 3. LUMS LAHORE =================
+    lums = {
+        "name": "Lahore University of Management Sciences (LUMS)",
+        "slug": "lums-lahore",
+        "city": "Lahore",
+        "country": "Pakistan",
+        "established": 1984,
+        "campus_size": "DHA Phase 5, 100 Acres",
+        "total_students": "5,000+",
+        "recovery_rate": 93,
+        "security_hotline": "+92 (42) 3560-8000",
+        "security_office": "DHA Phase 5 Campus Safety Command Office Gate 1",
+        "logo_url": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=128&auto=format&fit=crop&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1548013146-72479768bada?w=1200&auto=format&fit=crop&q=80",
+        "verification_mode": "admin_approval",
+        "email_domain": "lums.edu.pk",
+        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags & Backpacks", "Clothing & Gear", "Watches & Jewelry", "Books & Study Material"],
+        "locations": ["Gad & Birgit Rausing Library", "PDC Executive Dining Hall", "Suleman Dawood School of Business", "Sports Complex Aquatic Center", "Gate 1 Reception"],
+        "location_coords": {
+            "Gad & Birgit Rausing Library": {"lat": 31.4705, "lng": 74.4100},
+            "PDC Executive Dining Hall": {"lat": 31.4712, "lng": 74.4115},
+            "Suleman Dawood School of Business": {"lat": 31.4698, "lng": 74.4090},
+            "Sports Complex Aquatic Center": {"lat": 31.4720, "lng": 74.4080},
+            "Gate 1 Reception": {"lat": 31.4690, "lng": 74.4120}
+        },
+        "created_at": three_days_ago,
+    }
+    lums_id = db.universities.insert_one(lums).inserted_id
+
+    # LUMS Users
+    lums_admin_id = db.users.insert_one({
+        "university_id": lums_id,
+        "name": "Dr. Syed Babar Ali (Campus Administration)",
+        "email": "admin@lums.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "admin",
+        "status": "active",
+        "created_at": three_days_ago,
+    }).inserted_id
+
+    lums_student_id = db.users.insert_one({
+        "university_id": lums_id,
+        "name": "Usman Qureshi",
+        "email": "usman.qureshi@lums.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "student",
+        "status": "active",
+        "phone": "+92 333 7778899",
+        "created_at": three_days_ago,
+    }).inserted_id
+
+    db.users.insert_one({
+        "university_id": lums_id,
+        "name": "Dr. Bilal Khan (Associate Professor)",
+        "email": "bilal.khan@lums.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "teacher",
+        "status": "active",
+        "phone": "+92 334 7771122",
+        "created_at": three_days_ago,
+    })
+
+    db.users.insert_one({
+        "university_id": lums_id,
+        "name": "Tariq Mehmood (Campus Security)",
+        "email": "security@lums.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "staff",
+        "status": "active",
+        "phone": "+92 335 7773344",
+        "created_at": three_days_ago,
+    })
+
+    # LUMS Lost Items
+    db.reports.insert_one({
+        "university_id": lums_id,
+        "reporter_id": lums_student_id,
+        "reporter_name": "Usman Qureshi",
+        "reporter_email": "usman.qureshi@lums.edu.pk",
         "reporter_role": "student",
         "type": "lost",
         "title": "TI-84 Plus CE Color Graphing Calculator",
-        "description": "Left on table 4 in Computer Science Innovation Lab after Calculus class. Has yellow 'Property of Sarah' tape on the sliding cover.",
+        "description": "Left on 1st floor cubicle table in Rausing Library. Has yellow label with name on sliding cover.",
         "category": "Electronics",
-        "location": "Computer Science Innovation Lab",
-        "lat": 42.3610,
-        "lng": -71.0925,
-        "date": now.strftime("%Y-%m-%d"),
+        "location": "Gad & Birgit Rausing Library",
+        "lat": 31.4705,
+        "lng": 74.4100,
+        "date": yesterday.strftime("%Y-%m-%d"),
         "image_url": "https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?w=800&auto=format&fit=crop&q=80",
-        "reward": "$20 Cash Reward",
-        "status": "pending_approval",
-        "created_at": now - timedelta(hours=3),
-    }
-    db.reports.insert_one(rep6)
+        "status": "open",
+        "created_at": yesterday,
+    })
 
-    # Report 7: Pending Approval (Found Hydro Flask submitted by Alex)
-    rep7 = {
-        "university_id": apex_id,
-        "reporter_id": alex_id,
-        "reporter_name": "Alex Vance",
-        "reporter_email": "alex@apex.edu",
+    db.reports.insert_one({
+        "university_id": lums_id,
+        "reporter_id": lums_student_id,
+        "reporter_name": "Usman Qureshi",
+        "reporter_email": "usman.qureshi@lums.edu.pk",
         "reporter_role": "student",
-        "type": "found",
+        "type": "lost",
         "title": "Pacific Blue Hydro Flask 32oz Wide Mouth",
-        "description": "Found on the bleachers at the basketball court. Covered with assorted national parks stickers and flex cap.",
-        "category": "Other",
-        "location": "Campus Sports Complex & Gymnasium",
-        "lat": 42.3580,
-        "lng": -71.0968,
-        "date": now.strftime("%Y-%m-%d"),
+        "description": "Blue insulated stainless water bottle left on bleachers near gym.",
+        "category": "Personal Items",
+        "location": "Sports Complex Aquatic Center",
+        "lat": 31.4720,
+        "lng": 74.4080,
+        "date": two_days_ago.strftime("%Y-%m-%d"),
         "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=800&auto=format&fit=crop&q=80",
-        "security_question": "Which national park sticker is placed nearest to the lid?",
-        "status": "pending_approval",
-        "created_at": now - timedelta(hours=1),
-    }
-    db.reports.insert_one(rep7)
-
-    # Seed Sample Pending Claim on rep2 (MacBook) for Admin to test "Give Item" handover
-    db.claims.insert_one({
-        "university_id": apex_id,
-        "report_id": rep2_id,
-        "claimant_id": sarah_id,
-        "claimant_name": "Sarah Jenkins",
-        "claimant_email": "sarah@apex.edu",
-        "claimant_phone": "+1 (617) 555-8391",
-        "claimant_role": "student",
-        "kind": "ownership",
-        "message": "This is definitely my MacBook Pro M2! It was left on study desk 14. The serial number ends in 89X and it has my GitHub sticker on the back.",
-        "security_answer": "GitHub Octocat holographic sticker on top left of lid",
-        "status": "pending",
-        "created_at": yesterday + timedelta(hours=3),
-    })
-
-    # Seed Smart Tags for Sarah
-    db.tags.insert_one({
-        "tag_code": "FIT-APEX-8821",
-        "user_id": sarah_id,
-        "university_id": apex_id,
-        "item_name": "Sarah's MacBook Pro M2",
-        "category": "Electronics",
-        "reward_message": "If found, please contact me through FindIt! $50 reward offered.",
-        "anonymous_contact": True,
-        "scan_count": 3,
-        "created_at": three_days_ago,
-    })
-
-    db.tags.insert_one({
-        "tag_code": "FIT-APEX-4190",
-        "user_id": sarah_id,
-        "university_id": apex_id,
-        "item_name": "Gym Duffel Bag & Keys",
-        "category": "Bags & Backpacks",
-        "reward_message": "Student gym bag containing essential notes and keys.",
-        "anonymous_contact": True,
-        "scan_count": 0,
+        "status": "open",
         "created_at": two_days_ago,
     })
 
-    # Seed Sample Notification
-    db.notifications.insert_one({
-        "user_id": sarah_id,
-        "university_id": apex_id,
-        "title": "High Confidence Match Detected!",
-        "message": "A found report 'Apple MacBook Pro 14 inch in Space Grey' in Central Library matches your lost report with a 96% confidence score.",
-        "link": f"/reports/{rep1_id}",
-        "type": "match",
-        "is_read": False,
-        "created_at": yesterday + timedelta(hours=2),
+
+    # ================= 4. GIKI TOPI =================
+    giki = {
+        "name": "GIK Institute of Engineering Sciences and Technology",
+        "slug": "giki-topi",
+        "city": "Topi, Swabi",
+        "country": "Pakistan",
+        "established": 1993,
+        "campus_size": "KPK Foothills, 400 Acres",
+        "total_students": "2,500+",
+        "recovery_rate": 90,
+        "security_hotline": "+92 (938) 271858",
+        "security_office": "Main Faculty Gate Security Post & Lost Property Office",
+        "logo_url": "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=128&auto=format&fit=crop&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&auto=format&fit=crop&q=80",
+        "verification_mode": "admin_approval",
+        "email_domain": "giki.edu.pk",
+        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags & Backpacks", "Clothing & Gear", "Watches & Jewelry", "Books & Study Material"],
+        "locations": ["Agha Hasan Abedi Auditorium", "Central Library", "Faculty of Mechanical Engineering", "Hostel 4 Common Room", "Main Gate"],
+        "location_coords": {
+            "Agha Hasan Abedi Auditorium": {"lat": 34.0700, "lng": 72.6450},
+            "Central Library": {"lat": 34.0710, "lng": 72.6460},
+            "Faculty of Mechanical Engineering": {"lat": 34.0690, "lng": 72.6440},
+            "Hostel 4 Common Room": {"lat": 34.0720, "lng": 72.6470},
+            "Main Gate": {"lat": 34.0680, "lng": 72.6430}
+        },
+        "created_at": three_days_ago,
+    }
+    giki_id = db.universities.insert_one(giki).inserted_id
+
+    # GIKI Users
+    db.users.insert_one({
+        "university_id": giki_id,
+        "name": "Dr. Fazal Ahmad Khalid (Rector & Admin)",
+        "email": "admin@giki.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "admin",
+        "status": "active",
+        "created_at": three_days_ago,
     })
 
-    print("[FindIt DB] Seed data generated successfully.")
+    giki_student_id = db.users.insert_one({
+        "university_id": giki_id,
+        "name": "Saad Rehman",
+        "email": "saad.rehman@giki.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "student",
+        "status": "active",
+        "phone": "+92 345 9998877",
+        "created_at": three_days_ago,
+    }).inserted_id
 
+    db.users.insert_one({
+        "university_id": giki_id,
+        "name": "Engr. Zainab Bibi",
+        "email": "zainab.bibi@giki.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "teacher",
+        "status": "active",
+        "phone": "+92 346 9991122",
+        "created_at": three_days_ago,
+    })
+
+    db.users.insert_one({
+        "university_id": giki_id,
+        "name": "Gulzar Khan (Security Incharge)",
+        "email": "security@giki.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "staff",
+        "status": "active",
+        "phone": "+92 347 9993344",
+        "created_at": three_days_ago,
+    })
+
+    # GIKI Lost Item
+    db.reports.insert_one({
+        "university_id": giki_id,
+        "reporter_id": giki_student_id,
+        "reporter_name": "Saad Rehman",
+        "reporter_email": "saad.rehman@giki.edu.pk",
+        "reporter_role": "student",
+        "type": "lost",
+        "title": "Apple MacBook Pro 14 inch in Space Grey",
+        "description": "Left on 2nd row seat in Auditorium after IEEE guest lecture.",
+        "category": "Electronics",
+        "location": "Agha Hasan Abedi Auditorium",
+        "lat": 34.0700,
+        "lng": 72.6450,
+        "date": yesterday.strftime("%Y-%m-%d"),
+        "image_url": "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&auto=format&fit=crop&q=80",
+        "status": "open",
+        "created_at": yesterday,
+    })
+
+
+    # ================= 5. UNIVERSITY OF THE PUNJAB (PU) =================
+    pu = {
+        "name": "University of the Punjab (PU)",
+        "slug": "pu-lahore",
+        "city": "Lahore",
+        "country": "Pakistan",
+        "established": 1882,
+        "campus_size": "Quaid-e-Azam New Campus, 1,800 Acres",
+        "total_students": "45,000+",
+        "recovery_rate": 88,
+        "security_hotline": "+92 (42) 9923-1100",
+        "security_office": "New Campus Gate 2 Chief Security Directorate Office",
+        "logo_url": "https://images.unsplash.com/photo-1562774053-701939374585?w=128&auto=format&fit=crop&q=80",
+        "cover_url": "https://images.unsplash.com/photo-1562774053-701939374585?w=1200&auto=format&fit=crop&q=80",
+        "verification_mode": "admin_approval",
+        "email_domain": "pu.edu.pk",
+        "categories": ["Electronics", "Wallet", "Documents & IDs", "Keys", "Bags & Backpacks", "Clothing & Gear", "Watches & Jewelry", "Books & Study Material"],
+        "locations": ["Punjab University Central Library", "Department of Information Technology", "Institute of Business Administration", "New Campus Student Cafeteria", "Gate 2 Security Office"],
+        "location_coords": {
+            "Punjab University Central Library": {"lat": 31.4980, "lng": 74.3020},
+            "Department of Information Technology": {"lat": 31.4990, "lng": 74.3035},
+            "Institute of Business Administration": {"lat": 31.4975, "lng": 74.3010},
+            "New Campus Student Cafeteria": {"lat": 31.4985, "lng": 74.3040},
+            "Gate 2 Security Office": {"lat": 31.4960, "lng": 74.3000}
+        },
+        "created_at": three_days_ago,
+    }
+    pu_id = db.universities.insert_one(pu).inserted_id
+
+    # PU Users
+    db.users.insert_one({
+        "university_id": pu_id,
+        "name": "Prof. Dr. Khalid Mahmood (Registrar Admin)",
+        "email": "admin@pu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "admin",
+        "status": "active",
+        "created_at": three_days_ago,
+    })
+
+    pu_student_id = db.users.insert_one({
+        "university_id": pu_id,
+        "name": "Bilal Hassan",
+        "email": "bilal.hassan@pu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "student",
+        "status": "active",
+        "phone": "+92 312 8889900",
+        "created_at": three_days_ago,
+    }).inserted_id
+
+    db.users.insert_one({
+        "university_id": pu_id,
+        "name": "Dr. Saima Rauf",
+        "email": "saima.rauf@pu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "teacher",
+        "status": "active",
+        "phone": "+92 313 8881122",
+        "created_at": three_days_ago,
+    })
+
+    db.users.insert_one({
+        "university_id": pu_id,
+        "name": "Muhammad Rafiq (Gate 2 Security Officer)",
+        "email": "security@pu.edu.pk",
+        "password_hash": hashed_pwd,
+        "role": "staff",
+        "status": "active",
+        "phone": "+92 314 8883344",
+        "created_at": three_days_ago,
+    })
+
+    # PU Lost Item
+    db.reports.insert_one({
+        "university_id": pu_id,
+        "reporter_id": pu_student_id,
+        "reporter_name": "Bilal Hassan",
+        "reporter_email": "bilal.hassan@pu.edu.pk",
+        "reporter_role": "student",
+        "type": "lost",
+        "title": "Vintage Brown Leather Fossil Bifold Wallet",
+        "description": "Lost in the Central Library ground floor newspaper reading section. Contains student card and CNIC.",
+        "category": "Wallet",
+        "location": "Punjab University Central Library",
+        "lat": 31.4980,
+        "lng": 74.3020,
+        "date": yesterday.strftime("%Y-%m-%d"),
+        "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?w=800&auto=format&fit=crop&q=80",
+        "status": "open",
+        "created_at": yesterday,
+    })
+
+    print("[FindIt DB] Pakistani universities and records seeded successfully.")

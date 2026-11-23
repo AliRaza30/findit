@@ -19,31 +19,27 @@
     <a href="{{ url_for('reports.campus_map') }}" class="btn btn-glass px-3">
       <i class="fa fa-map-location-dot me-1 text-info"></i>Campus Map
     </a>
-    <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose px-3">
-      <i class="fa fa-circle-exclamation me-1"></i>Report Lost
-    </a>
-    <a href="{{ url_for('reports.new_report', type='found') }}" class="btn btn-glow-emerald px-3">
-      <i class="fa fa-circle-check me-1"></i>Report Found
-    </a>
   </div>
 </div>
 
 <!-- Modern Filter Bar -->
 <div class="filter-bar-wrap">
   <form class="row g-2 align-items-center" method="get">
-    <div class="col-12 col-md-3">
+    <div class="col-12 col-md-4">
       <div class="position-relative">
         <i class="fa fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
         <input name="q" class="form-control-custom w-100 ps-5" placeholder="Search keywords..." value="{{ args.get('q', '') }}">
       </div>
     </div>
-    <div class="col-6 col-md-2">
-      <select name="type" class="form-select-custom w-100">
-        <option value="">All Types</option>
-        <option value="lost" {{ 'selected' if args.get('type') == 'lost' }}>Lost Only</option>
-        <option value="found" {{ 'selected' if args.get('type') == 'found' }}>Found Only</option>
-      </select>
-    </div>
+    {% if is_admin %}
+      <div class="col-6 col-md-2">
+        <select name="type" class="form-select-custom w-100">
+          <option value="">All Types</option>
+          <option value="lost" {{ 'selected' if args.get('type') == 'lost' }}>Lost Only</option>
+          <option value="found" {{ 'selected' if args.get('type') == 'found' }}>Found Only</option>
+        </select>
+      </div>
+    {% endif %}
     <div class="col-6 col-md-2">
       <select name="category" class="form-select-custom w-100">
         <option value="">All Categories</option>
@@ -113,9 +109,6 @@
               <i class="fa fa-{% if r.type == 'lost' %}magnifying-glass{% else %}circle-check{% endif %} me-1"></i>{{ r.type }}
             </span>
             <div class="d-flex gap-1">
-              {% if r.reward %}
-                <span class="badge bg-warning text-dark fw-bold"><i class="fa fa-gift me-1"></i>Reward</span>
-              {% endif %}
               {% if r.status == 'resolved' %}
                 <span class="badge-resolved"><i class="fa fa-check-double me-1"></i>Resolved</span>
               {% elif r.status == 'pending_approval' %}
@@ -159,7 +152,6 @@
         <p class="small text-secondary mb-3">No matching items for this university. Try clearing filters or submit a new report.</p>
         <div class="d-flex justify-content-center gap-2">
           <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">Clear Filters</a>
-          <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm">Report Lost Item</a>
         </div>
       </div>
     </div>

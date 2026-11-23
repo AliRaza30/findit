@@ -49,13 +49,15 @@ def create_app():
             else:
                 session.clear()
 
-        # Enforce No General Public Access
-        # Only authenticated campus members (Student, Teacher, Staff, Admin) can access the system.
+        # Public endpoints that can be viewed without prior login:
+        # Main University Dashboard, Individual University Pages, Login, Register, University Addition, Static
         public_endpoints = {
+            "main.home",
+            "main.university_portal",
+            "main.universities_directory",
             "auth.login",
             "auth.register",
             "auth.register_university",
-            "main.demo_login",
             "tags.scan_tag",
             "static",
         }

@@ -26,6 +26,7 @@ def _login_session(user):
 
 
 @bp.route("/register-university", methods=["GET", "POST"])
+@bp.route("/register_university", methods=["GET", "POST"])
 def register_university():
     """Creates a new university workspace and the initial administrative account."""
     if request.method == "POST":
@@ -125,14 +126,16 @@ def register():
             flash(f"A valid @{uni['email_domain']} university email address is required for this campus.", "danger")
             return render_template("register.html", universities=universities, form=f)
 
-        status = "pending" if mode == "admin_approval" else "active"
+        # Enforce Admin Approval for ALL new member registrations
+        # (Students, Teachers, Staff must always be approved by the University Admin)
+        status = "pending"
         user = {
             "university_id": uni["_id"],
             "name": name,
             "email": email,
             "password_hash": generate_password_hash(password),
             "role": role,
-            "status": status,
+            "status": "pending",
             "phone": phone,
             "created_at": _now(),
         }
@@ -142,13 +145,21 @@ def register():
             flash("An account with this email address already exists at this university.", "danger")
             return render_template("register.html", universities=universities, form=f)
 
-        if status == "pending":
-            flash("Account registered successfully! A campus administrator will review and activate your access shortly.", "info")
-            return redirect(url_for("auth.login"))
+        # Notify the university administrator of this pending registration request
+        from .utils import create_notification
+        admins = list(db.users.find({"university_id": uni["_id"], "role": "admin"}))
+        for adm in admins:
+            create_notification(
+                user_id=adm["_id"],
+                university_id=uni["_id"],
+                title="New Member Registration Awaiting Approval",
+                message=f"{name} ({role.capitalize()}) has registered and is awaiting your verification.",
+                link=url_for("admin.dashboard"),
+                ntype="user_approval"
+            )
 
-        _login_session(user)
-        flash(f"Welcome to FindIt, {name}! Your account is active.", "success")
-        return redirect(url_for("main.home"))
+        flash(f"Registration submitted for {uni['name']}! Your account has been sent to the University Administrator for approval. You can log in once approved.", "info")
+        return redirect(url_for("auth.login", university=uni.get("slug")))
 
     return render_template("register.html", universities=universities, form={})
 
@@ -171,14 +182,14 @@ def login():
             return render_template("login.html", universities=universities, form=f)
 
         if user.get("status") != "active":
-            flash("Your registration is pending approval by your university administrator.", "warning")
+            flash("Your registration request is pending approval by your University Administrator. Please wait for approval before logging in.", "warning")
             return render_template("login.html", universities=universities, form=f)
 
         _login_session(user)
         flash(f"Welcome back, {user['name']}!", "success")
         if user.get("role") == "admin":
             return redirect(url_for("admin.dashboard"))
-        return redirect(url_for("main.home"))
+        return redirect(url_for("main.university_portal", slug=uni["slug"]))
 
     return render_template("login.html", universities=universities, form={})
 

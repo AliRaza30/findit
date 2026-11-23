@@ -58,12 +58,12 @@
   <!-- Left Column: Item Overview -->
   <div class="col-lg-7">
     <div class="glass-panel overflow-hidden">
-      <!-- Item Media -->
-      <div style="height: 380px; width:100%; position:relative; background:#0B111E;">
+      <!-- Item Media (Clickable for Found reporting) -->
+      <div class="position-relative overflow-hidden" style="height: 380px; width:100%; background:#0B111E; cursor:pointer;" onclick="openFoundForm()" title="Click picture to report finding this item">
         {% if report.image_url %}
-          <img src="{{ report.image_url }}" style="width:100%; height:100%; object-fit:contain; background:#0F172A;" alt="{{ report.title }}">
+          <img src="{{ report.image_url }}" id="item-picture" style="width:100%; height:100%; object-fit:contain; background:#0F172A; transition:transform 0.3s ease;" alt="{{ report.title }}">
         {% else %}
-          <img src="{{ report.fallback_image }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ report.title }}">
+          <img src="{{ report.fallback_image }}" id="item-picture" style="width:100%; height:100%; object-fit:cover; transition:transform 0.3s ease;" alt="{{ report.title }}">
         {% endif %}
 
         <div style="position:absolute; top:16px; left:16px; display:flex; gap:8px;">
@@ -81,14 +81,21 @@
           {% endif %}
         </div>
 
-        {% if report.reward %}
-          <div style="position:absolute; top:16px; right:16px;">
-            <span class="badge bg-warning text-dark fw-bold px-3 py-2 shadow" style="font-size:0.85rem;">
-              <i class="fa fa-gift me-1"></i>{{ report.reward }}
+        {% if report.type == 'lost' and report.status == 'open' and not can_manage %}
+          <div style="position:absolute; bottom:16px; right:16px; z-index:5;">
+            <span class="badge bg-success text-white px-3 py-2 shadow" style="font-size:0.85rem; border:1px solid rgba(255,255,255,0.4);">
+              <i class="fa fa-hand-holding-heart me-1"></i>Found this? Click picture &rarr;
             </span>
           </div>
         {% endif %}
       </div>
+
+      {% if report.type == 'lost' and report.status == 'open' and not can_manage %}
+        <div class="px-4 py-2 d-flex justify-content-between align-items-center" style="background:#F0FDF4; border-bottom:1px solid #DCFCE7;">
+          <span class="small text-success fw-semibold"><i class="fa fa-circle-info me-1"></i>Click the picture or use the <strong>Found It</strong> form beside it to report recovery.</span>
+          <button type="button" onclick="openFoundForm()" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;">Fill Form &rarr;</button>
+        </div>
+      {% endif %}
 
       <!-- Item Information -->
       <div class="p-4">
@@ -280,30 +287,21 @@
 
               <div class="mb-3">
                 <label class="form-label-custom">
-                  <i class="fa fa-phone"></i>Contact Phone / Telegram (Optional)
+                  <i class="fa fa-location-dot text-danger"></i>Where is the item now? / Where did you find it?
                 </label>
-                <input type="text" name="contact_phone" class="form-control-custom w-100" placeholder="e.g. +1 555-0192 or @username">
+                <input type="text" id="found-location-input" name="location" class="form-control-custom w-100" placeholder="e.g. Turned in to Campus Security Desk Room 104" required>
               </div>
 
               <div class="mb-3">
                 <label class="form-label-custom">
-                  <i class="fa fa-{{ 'location-dot text-danger' if report.type == 'lost' else 'shield text-primary' }}"></i>
-                  {% if report.type == 'lost' %}
-                    Where is the item now? / Where did you find it?
-                  {% else %}
-                    Proof of Ownership &amp; Identifying Details
-                  {% endif %}
+                  <i class="fa fa-comment-dots text-primary"></i>Recovery Notes / Details
                 </label>
-                <textarea name="message" rows="3" class="form-control-custom w-100" minlength="8" required
-                  placeholder="{{ 'e.g. Turned in to Campus Security Desk Room 104, or located on table 4 in Computer Science Lab...' if report.type == 'lost' else 'Describe unique markings, contents, serial numbers, or circumstances confirming this is yours...' }}"></textarea>
+                <textarea name="message" rows="3" class="form-control-custom w-100" minlength="4" required
+                  placeholder="Describe where you located it and where it can be collected..."></textarea>
               </div>
 
-              <button class="btn btn-{{ 'glow-emerald' if report.type == 'lost' else 'glow-primary' }} w-100 py-2 fw-semibold">
-                {% if report.type == 'lost' %}
-                  <i class="fa fa-paper-plane me-2"></i>Submit Found Report to Admin Desk
-                {% else %}
-                  <i class="fa fa-paper-plane me-2"></i>Submit Official Claim to Admin
-                {% endif %}
+              <button class="btn btn-glow-emerald w-100 py-3 fw-bold">
+                <i class="fa fa-paper-plane me-2"></i>Submit Found Report to Admin Desk
               </button>
             </form>
           {% endif %}
@@ -383,4 +381,24 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openFoundForm() {
+  const formEl = document.getElementById('found-section');
+  const inputEl = document.getElementById('found-location-input');
+  if (formEl) {
+    formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    formEl.style.transition = 'all 0.3s ease';
+    formEl.style.boxShadow = '0 0 0 4px rgba(16,185,129,0.35)';
+    setTimeout(() => {
+      formEl.style.boxShadow = '';
+    }, 1200);
+  }
+  if (inputEl) {
+    inputEl.focus();
+  }
+}
+</script>
 {% endblock %}

@@ -14,31 +14,6 @@
       <p class="text-secondary small">Access your university workspace on FindIt</p>
     </div>
 
-    <!-- Hackathon Quick-Login Banner -->
-    <div class="glass-panel p-3 mb-3" style="border:1px dashed rgba(99,102,241,0.4); background:#EEF2FF;">
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <span class="small fw-bold text-dark"><i class="fa fa-bolt text-warning me-1"></i>Demo Accounts (1-Click Access)</span>
-        <span class="badge" style="background:#4F46E5; color:#fff; font-size:0.65rem;">Judge Access</span>
-      </div>
-      <div class="d-flex gap-2 flex-wrap mb-2">
-        <a href="{{ url_for('main.demo_login', role='student') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
-          <i class="fa fa-user-graduate me-1 text-info"></i>Student
-        </a>
-        <a href="{{ url_for('main.demo_login', role='teacher') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
-          <i class="fa fa-chalkboard-user me-1 text-primary"></i>Teacher
-        </a>
-        <a href="{{ url_for('main.demo_login', role='staff') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
-          <i class="fa fa-user-shield me-1 text-success"></i>Staff
-        </a>
-        <a href="{{ url_for('main.demo_login', role='admin') }}" class="btn btn-light btn-sm flex-grow-1 border shadow-sm" style="font-size:0.75rem; font-weight:600;">
-          <i class="fa fa-crown me-1 text-warning"></i>Admin
-        </a>
-      </div>
-      <div class="small text-secondary" style="font-size:0.72rem;">
-        <i class="fa fa-key me-1 text-muted"></i>Password for all accounts: <code class="text-primary fw-bold">password123</code> | Campus: <span class="fw-semibold">Apex University</span>
-      </div>
-    </div>
-
     <div class="glass-panel p-4 p-md-5">
       <form method="post">
         <div class="mb-3">

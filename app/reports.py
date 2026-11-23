@@ -58,6 +58,7 @@ def _can_manage(report):
 
 
 @bp.route("/reports")
+@bp.route("/reports/")
 @login_required
 def list_reports():
     db = get_db()
@@ -88,7 +89,13 @@ def list_reports():
             else:
                 query["status"] = "open"
 
-    if args.get("type") in ("lost", "found"):
+    # Requirement 8: Found Item records are restricted to University Admin only.
+    # Students and other users only see Lost Item reports.
+    if not is_admin and not args.get("mine"):
+        query["type"] = "lost"
+    elif is_admin and args.get("type") in ("lost", "found"):
+        query["type"] = args["type"]
+    elif not is_admin and args.get("mine") and args.get("type") in ("lost", "found"):
         query["type"] = args["type"]
 
     if args.get("category"):
@@ -136,7 +143,10 @@ def campus_map():
     if not uni:
         return redirect(url_for("main.universities_directory"))
 
-    reports = list(db.reports.find({"university_id": uni["_id"], "status": "open"}))
+    map_query = {"university_id": uni["_id"], "status": "open"}
+    if g.user and g.user.get("role") != "admin":
+        map_query["type"] = "lost"
+    reports = list(db.reports.find(map_query))
     coords_map = uni.get("location_coords", {})
 
     map_pins = []
@@ -345,11 +355,16 @@ def claim(report_id):
         return redirect(url_for("reports.detail", report_id=report["_id"]))
 
     message = request.form.get("message", "").strip()
+    found_location = request.form.get("location", "").strip()
     security_answer = request.form.get("security_answer", "").strip()
-    contact_phone = request.form.get("contact_phone", "").strip()
 
-    if len(message) < 8:
-        flash("Please provide sufficient location/proof details (at least 8 characters).", "danger")
+    if found_location:
+        full_message = f"Current Item Location: {found_location} | Notes: {message}"
+    else:
+        full_message = message
+
+    if len(full_message) < 4:
+        flash("Please provide brief location/recovery details.", "danger")
         return redirect(url_for("reports.detail", report_id=report["_id"]))
 
     is_finder = (report["type"] == "lost")
@@ -361,10 +376,10 @@ def claim(report_id):
         "claimant_id": g.user["_id"],
         "claimant_name": g.user["name"],
         "claimant_email": g.user["email"],
-        "claimant_phone": contact_phone,
         "claimant_role": g.user.get("role", "student"),
         "kind": kind,
-        "message": message,
+        "location": found_location,
+        "message": full_message,
         "security_answer": security_answer,
         "status": "pending",
         "created_at": _now(),

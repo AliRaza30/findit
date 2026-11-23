@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Universities Dashboard · FindIt Campus Sentinel{% endblock %}
+
+{% block content %}
+
+<!-- Header & Welcome -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="badge" style="background:rgba(99,102,241,0.15); color:#4F46E5; font-weight:700;">
+        <i class="fa fa-university me-1"></i>Multi-Campus Sentinel
+      </span>
+      <span class="text-secondary small">· University Network</span>
+    </div>
+    <h2 class="fw-800 mb-0" style="font-size:2.2rem; letter-spacing:-0.5px;">
+      Universities <span class="brand-gradient-text">Dashboard</span>
+    </h2>
+    <p class="text-secondary small mb-0 mt-1">
+      Select your university campus to browse lost belongings, or register a new university workspace.
+    </p>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <button class="btn btn-glow-primary px-3 py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#addUniversityModal">
+      <i class="fa fa-plus-circle me-1"></i>+ Add University
+    </button>
+    {% if current_user and university %}
+      <a href="{{ url_for('main.university_portal', slug=university.slug) }}" class="btn btn-glass px-3 py-2">
+        <i class="fa fa-gauge-high me-1 text-primary"></i>My Campus Workspace
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if current_user and university %}
+  <div class="glass-panel p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2" style="border-left: 4px solid #4F46E5; background:#EEF2FF;">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width:42px; height:42px; border-radius:12px; background:rgba(79,70,229,0.2); display:flex; align-items:center; justify-content:center; color:#4F46E5; font-size:1.3rem;">
+        <i class="fa fa-user-check"></i>
+      </div>
+      <div>
+        <h6 class="mb-0 fw-bold text-dark">Signed in as {{ current_user.name }} ({{ current_user.role | capitalize }})</h6>
+        <p class="mb-0 small text-secondary">Active Campus: <strong>{{ university.name }}</strong></p>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('main.university_portal', slug=university.slug) }}" class="btn btn-glow-primary btn-sm px-3">
+        Open {{ university.name.split()[0] }} Portal &rarr;
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Search & Filter Bar -->
+<div class="glass-panel p-3 mb-4">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-12 col-md-8">
+      <div class="position-relative">
+        <i class="fa fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+        <input type="text" name="q" class="form-control-custom w-100 ps-5" placeholder="Search by university name, city, or domain..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-12 col-md-4 d-flex gap-2">
+      <button type="submit" class="btn btn-glow-primary w-100">
+        <i class="fa fa-filter me-1"></i>Search Campuses
+      </button>
+      {% if search_query %}
+        <a href="{{ url_for('main.home') }}" class="btn btn-glass" title="Clear Search">
+          <i class="fa fa-rotate-left"></i>
+        </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Universities Grid -->
+<div class="row g-4 mb-5">
+  {% for u in universities %}
+    <div class="col-md-6 col-lg-4">
+      <div class="glass-panel overflow-hidden h-100 d-flex flex-column justify-content-between glass-panel-interactive shadow-sm">
+        <div>
+          <!-- University Header Banner -->
+          <div style="height:140px; background-image:url('{{ u.cover_url or 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&auto=format&fit=crop&q=80' }}'); background-size:cover; background-position:center; position:relative;">
+            <div style="position:absolute; inset:0; background:linear-gradient(to bottom, transparent 40%, rgba(255,255,255,0.95) 100%);"></div>
+            <!-- Campus Logo Avatar -->
+            <div style="position:absolute; bottom:12px; left:16px; width:52px; height:52px; border-radius:14px; overflow:hidden; border:2px solid #FFFFFF; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+              <img src="{{ u.logo_url or 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=128&auto=format&fit=crop&q=80' }}" style="width:100%; height:100%; object-fit:cover;" alt="{{ u.name }}">
+            </div>
+            <!-- Campus Status Badge -->
+            <div style="position:absolute; top:12px; right:12px;">
+              <span class="badge" style="background:rgba(255,255,255,0.95); backdrop-filter:blur(8px); border:1px solid #E2E8F0; color:#059669; font-size:0.7rem; font-weight:700;">
+                <i class="fa fa-circle-check me-1"></i>Active Campus
+              </span>
+            </div>
+          </div>
+
+          <!-- Body Content -->
+          <div class="p-4 pt-3">
+            <h5 class="fw-bold text-dark mb-1">{{ u.name }}</h5>
+            <div class="d-flex align-items-center gap-2 mb-3 text-secondary small">
+              <span><i class="fa fa-location-dot text-danger me-1"></i>{{ u.city or 'Pakistan' }}, {{ u.country or 'Pakistan' }}</span>
+              {% if u.email_domain %}
+                <span>·</span>
+                <span class="badge bg-light text-dark border">@{{ u.email_domain }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Campus Stats Badge Row -->
+            <div class="row g-2 mb-3 text-center">
+              <div class="col-6">
+                <div class="p-2 rounded" style="background:#FFF1F2; border:1px solid #FFE4E6;">
+                  <div class="fw-bold text-danger" style="font-size:1.1rem;">{{ u.lost_reports_count or 0 }}</div>
+                  <div class="text-secondary" style="font-size:0.72rem;">Lost Items</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="p-2 rounded" style="background:#F0FDF4; border:1px solid #DCFCE7;">
+                  <div class="fw-bold text-success" style="font-size:1.1rem;">{{ u.members_count or 0 }}</div>
+                  <div class="text-secondary" style="font-size:0.72rem;">Verified Members</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Campus Safety Desk Info -->
+            <div class="small text-secondary mb-3">
+              <div class="mb-1 text-truncate"><i class="fa fa-building-shield me-2 text-primary"></i><strong>Security Desk:</strong> {{ u.security_office or 'Campus Security Office' }}</div>
+              <div><i class="fa fa-phone me-2 text-emerald"></i><strong>Hotline:</strong> {{ u.security_hotline or '24/7 Safety Cell' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div class="p-4 pt-0">
+          <a href="{{ url_for('main.university_portal', slug=u.slug) }}" class="btn btn-glow-primary w-100 py-2 fw-semibold">
+            <i class="fa fa-door-open me-1"></i>Open {{ u.name.split()[0] }} Portal &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="glass-panel text-center py-5">
+        <i class="fa fa-university fs-1 text-secondary mb-3"></i>
+        <h5 class="fw-bold text-dark">No Universities Found</h5>
+        <p class="small text-secondary mb-3">Be the first to add a university workspace to the platform.</p>
+        <button class="btn btn-glow-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUniversityModal">
+          <i class="fa fa-plus me-1"></i>Add University Now
+        </button>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Modal: Add University -->
+<div class="modal fade" id="addUniversityModal" tabindex="-1" aria-labelledby="addUniversityModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content glass-panel border-0" style="background:#FFFFFF; box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 pt-4">
+        <div>
+          <h5 class="modal-title fw-bold text-dark" id="addUniversityModalLabel">
+            <i class="fa fa-university text-primary me-2"></i>Add New University Workspace
+          </h5>
+          <p class="small text-secondary mb-0">Create an independent campus workspace with separate Admin, Teachers, Students, and Staff data.</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{{ url_for('auth.register_university') }}">
+        <div class="modal-body px-4 py-3">
+          <div class="row g-3 mb-3">
+            <div class="col-md-12">
+              <label class="form-label-custom"><i class="fa fa-building text-primary"></i>University Name</label>
+              <input type="text" name="university_name" class="form-control-custom w-100" placeholder="e.g. National University of Sciences and Technology (NUST)" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-city text-info"></i>Campus City</label>
+              <input type="text" name="city" class="form-control-custom w-100" placeholder="e.g. Islamabad or Lahore" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-globe text-emerald"></i>Country</label>
+              <input type="text" name="country" class="form-control-custom w-100" value="Pakistan" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-at text-primary"></i>Official Email Domain (Optional)</label>
+              <input type="text" name="email_domain" class="form-control-custom w-100" placeholder="e.g. nust.edu.pk">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-shield-halved text-danger"></i>Lost &amp; Found Central Desk</label>
+              <input type="text" name="security_office" class="form-control-custom w-100" placeholder="e.g. Main Gate Security Control Office Room 102">
+            </div>
+          </div>
+
+          <hr class="my-3">
+          <h6 class="fw-bold text-dark mb-2"><i class="fa fa-user-shield text-warning me-1"></i>Initial University Administrator Account</h6>
+
+          <div class="row g-3 mb-2">
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-user text-primary"></i>Admin Full Name</label>
+              <input type="text" name="admin_name" class="form-control-custom w-100" placeholder="e.g. Dr. Muhammad Tariq" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom"><i class="fa fa-envelope text-info"></i>Admin Email</label>
+              <input type="email" name="admin_email" class="form-control-custom w-100" placeholder="admin@university.edu.pk" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom"><i class="fa fa-key text-emerald"></i>Admin Password</label>
+            <input type="password" name="admin_password" class="form-control-custom w-100" placeholder="•••••••• (Min 8 characters)" minlength="8" required>
+          </div>
+        </div>
+        <div class="modal-footer border-top border-secondary border-opacity-25 px-4 pb-4">
+          <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-glow-primary px-4 fw-semibold">
+            <i class="fa fa-check me-1"></i>Create University Workspace
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

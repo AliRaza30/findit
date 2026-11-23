@@ -53,6 +53,11 @@
 
     <div class="collapse navbar-collapse" id="nav">
       <ul class="navbar-nav mx-auto gap-1 my-2 my-lg-0">
+        <li class="nav-item">
+          <a class="nav-link-custom fw-semibold" href="{{ url_for('main.home') }}">
+            <i class="fa fa-university text-primary"></i>Universities Dashboard
+          </a>
+        </li>
         {% if current_user %}
           {% if current_user.role == 'admin' %}
             <li class="nav-item">
@@ -65,14 +70,14 @@
             </li>
           {% else %}
             <li class="nav-item">
-              <a class="nav-link-custom fw-semibold" href="{{ url_for('main.home') }}">
-                <i class="fa fa-gauge-high text-primary"></i>My Dashboard
+              <a class="nav-link-custom fw-semibold" href="{{ url_for('main.university_portal', slug=university.slug) if university else url_for('main.home') }}">
+                <i class="fa fa-gauge-high text-primary"></i>Campus Workspace
               </a>
             </li>
           {% endif %}
           <li class="nav-item">
             <a class="nav-link-custom" href="{{ url_for('reports.list_reports') }}">
-              <i class="fa fa-magnifying-glass text-info"></i>Campus Items
+              <i class="fa fa-magnifying-glass text-info"></i>Lost Items
             </a>
           </li>
           <li class="nav-item">
@@ -89,20 +94,9 @@
       </ul>
 
       <div class="d-flex align-items-center gap-2 flex-wrap mt-2 mt-lg-0">
-        <!-- Hackathon Judge Quick Switcher -->
-        <div class="dropdown">
-          <button class="btn btn-glass btn-sm dropdown-toggle py-1 px-3" style="font-size:0.8rem; border-color:#EC4899; color:#BE185D;" data-bs-toggle="dropdown">
-            <i class="fa fa-bolt text-danger me-1"></i>Judge Login
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-            <li><h6 class="dropdown-header text-muted">1-Click Hackathon Demo</h6></li>
-            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='student') }}"><i class="fa fa-user-graduate me-2 text-info"></i>Student (Sarah Jenkins)</a></li>
-            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='teacher') }}"><i class="fa fa-chalkboard-user me-2 text-primary"></i>Teacher (Dr. Eleanor Vance)</a></li>
-            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='staff') }}"><i class="fa fa-user-shield me-2 text-success"></i>Staff / Security (Marcus)</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item py-2" href="{{ url_for('main.demo_login', role='admin') }}"><i class="fa fa-crown me-2 text-warning"></i>Admin (Prof. Sterling)</a></li>
-          </ul>
-        </div>
+        <a href="{{ url_for('auth.register_university') }}" class="btn btn-outline-primary btn-sm px-3" style="font-size:0.8rem; font-weight:600;">
+          <i class="fa fa-plus-circle me-1"></i>Add University
+        </a>
 
         {% if current_user %}
           <!-- Notifications Bell -->
@@ -124,12 +118,15 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               <li><div class="dropdown-item-text text-muted small"><i class="fa fa-id-badge me-1"></i>Role: <strong class="text-dark">{{ current_user.role | capitalize }}</strong></div></li>
+              {% if university %}
+                <li><div class="dropdown-item-text text-muted small"><i class="fa fa-university me-1"></i>Campus: <strong class="text-dark">{{ university.name }}</strong></div></li>
+              {% endif %}
               <li><hr class="dropdown-divider"></li>
               {% if current_user.role == 'admin' %}
                 <li><a class="dropdown-item py-2" href="{{ url_for('admin.dashboard') }}"><i class="fa fa-shield-halved me-2 text-primary"></i>Admin Command Center</a></li>
                 <li><a class="dropdown-item py-2" href="{{ url_for('admin.export_csv') }}"><i class="fa fa-file-csv me-2 text-success"></i>Export Security Records (CSV)</a></li>
               {% else %}
-                <li><a class="dropdown-item py-2" href="{{ url_for('main.home') }}"><i class="fa fa-gauge-high me-2 text-primary"></i>My Workspace</a></li>
+                <li><a class="dropdown-item py-2" href="{{ url_for('main.university_portal', slug=university.slug) if university else url_for('main.home') }}"><i class="fa fa-gauge-high me-2 text-primary"></i>My Campus Workspace</a></li>
                 <li><a class="dropdown-item py-2" href="{{ url_for('reports.list_reports', mine=1, status='all') }}"><i class="fa fa-folder-open me-2 text-info"></i>My Submitted Requests</a></li>
                 <li><a class="dropdown-item py-2" href="{{ url_for('tags.my_tags') }}"><i class="fa fa-qrcode me-2 text-warning"></i>My Smart Tags</a></li>
               {% endif %}
@@ -137,10 +134,6 @@
               <li><a class="dropdown-item py-2 text-danger" href="{{ url_for('auth.logout') }}"><i class="fa fa-arrow-right-from-bracket me-2"></i>Logout</a></li>
             </ul>
           </div>
-
-          <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm px-3">
-            <i class="fa fa-plus me-1"></i>Report Item
-          </a>
         {% else %}
           <a class="btn-glass btn-sm" href="{{ url_for('auth.login') }}">Login</a>
           <a class="btn-glow-primary btn-sm" href="{{ url_for('auth.register') }}">Sign Up</a>
@@ -174,9 +167,8 @@
       <div class="col-md-6 text-center text-md-start">
         <div class="d-flex align-items-center gap-2 justify-content-center justify-content-md-start mb-2">
           <span class="brand-gradient-text fw-bold fs-5">FindIt</span>
-          <span class="badge" style="background:#EEF2FF; color:#4338CA; border:1px solid #C7D2FE;">v2.0 International Hackathon Edition</span>
         </div>
-        <p class="small text-secondary mb-0">The next-generation, AI-assisted multi-tenant university lost &amp; found network. Zero items left behind.</p>
+        <p class="small text-secondary mb-0">Multi-Campus University Lost &amp; Found Sentinel Portal</p>
       </div>
       <div class="col-md-6 text-center text-md-end">
         <div class="d-flex gap-3 justify-content-center justify-content-md-end flex-wrap mb-2">

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ current_user.role | capitalize }} Workspace · {{ university.name }}{% endblock %}
+{% block title %}{{ (current_user.role | capitalize) if current_user else 'Campus Portal' }} · {{ (active_university.name if active_university else university.name) if (active_university or university) else 'FindIt' }}{% endblock %}
 
 {% block content %}
 
@@ -7,37 +7,54 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
   <div>
     <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-      {% if current_user.role == 'student' %}
-        <span class="badge" style="background:rgba(99,102,241,0.15); color:#4F46E5; border:1px solid rgba(99,102,241,0.3); font-weight:700;">
-          <i class="fa fa-user-graduate me-1"></i>Student Portal
-        </span>
-      {% elif current_user.role == 'teacher' %}
-        <span class="badge" style="background:rgba(14,165,233,0.15); color:#0284C7; border:1px solid rgba(14,165,233,0.3); font-weight:700;">
-          <i class="fa fa-chalkboard-user me-1"></i>Teacher &amp; Faculty Portal
-        </span>
+      {% if current_user %}
+        {% if current_user.role == 'student' %}
+          <span class="badge" style="background:rgba(99,102,241,0.15); color:#4F46E5; border:1px solid rgba(99,102,241,0.3); font-weight:700;">
+            <i class="fa fa-user-graduate me-1"></i>Student Portal
+          </span>
+        {% elif current_user.role == 'teacher' %}
+          <span class="badge" style="background:rgba(14,165,233,0.15); color:#0284C7; border:1px solid rgba(14,165,233,0.3); font-weight:700;">
+            <i class="fa fa-chalkboard-user me-1"></i>Teacher &amp; Faculty Portal
+          </span>
+        {% else %}
+          <span class="badge" style="background:rgba(16,185,129,0.15); color:#059669; border:1px solid rgba(16,185,129,0.3); font-weight:700;">
+            <i class="fa fa-user-shield me-1"></i>Campus Staff &amp; Security Portal
+          </span>
+        {% endif %}
       {% else %}
-        <span class="badge" style="background:rgba(16,185,129,0.15); color:#059669; border:1px solid rgba(16,185,129,0.3); font-weight:700;">
-          <i class="fa fa-user-shield me-1"></i>Campus Staff &amp; Security Portal
+        <span class="badge" style="background:rgba(99,102,241,0.15); color:#4F46E5; border:1px solid rgba(99,102,241,0.3); font-weight:700;">
+          <i class="fa fa-university me-1"></i>Campus Portal
         </span>
       {% endif %}
       <span class="text-secondary small">·</span>
-      <span class="text-secondary small"><i class="fa fa-university me-1 text-primary"></i>{{ university.name }}</span>
+      <span class="text-secondary small"><i class="fa fa-university me-1 text-primary"></i>{{ (active_university.name if active_university else university.name) if (active_university or university) else '' }}</span>
     </div>
-    <h2 class="fw-800 mb-0" style="font-size:2rem; letter-spacing:-0.5px;">
-      Welcome back, <span class="brand-gradient-text">{{ current_user.name.split()[0] }}</span> 👋
-    </h2>
-    <p class="text-secondary small mb-0 mt-1">
-      Submit loss or found requests, track admin verification status, and claim recovered belongings.
-    </p>
+    {% if current_user %}
+      <h2 class="fw-800 mb-0" style="font-size:2rem; letter-spacing:-0.5px;">
+        Welcome back, <span class="brand-gradient-text">{{ current_user.name.split()[0] }}</span> 👋
+      </h2>
+      <p class="text-secondary small mb-0 mt-1">
+        Track admin verification status, browse campus lost belongings, or submit recovery details.
+      </p>
+    {% else %}
+      <h2 class="fw-800 mb-0" style="font-size:2rem; letter-spacing:-0.5px;">
+        {{ active_university.name if active_university else (university.name if university else 'Campus') }} <span class="brand-gradient-text">Portal</span>
+      </h2>
+      <p class="text-secondary small mb-0 mt-1">
+        Browse active lost belongings on campus or log in to manage your campus records.
+      </p>
+    {% endif %}
   </div>
 
-  <!-- Primary Submissions Hub -->
+  <!-- Navigation Hub -->
   <div class="d-flex gap-2 flex-wrap">
-    <a class="btn btn-glow-rose px-3 py-2 fw-semibold shadow-sm" href="{{ url_for('reports.new_report', type='lost') }}">
-      <i class="fa fa-circle-exclamation me-1"></i>Submit Lost Item Request
-    </a>
-    <a class="btn btn-glow-emerald px-3 py-2 fw-semibold shadow-sm" href="{{ url_for('reports.new_report', type='found') }}">
-      <i class="fa fa-circle-check me-1"></i>Submit Found Item Request
+    {% if not current_user %}
+      <a href="{{ url_for('auth.login', university=(active_university.slug if active_university else '')) }}" class="btn btn-glow-primary px-3 py-2 fw-semibold">
+        <i class="fa fa-right-to-bracket me-1"></i>Campus Member Login
+      </a>
+    {% endif %}
+    <a href="{{ url_for('main.home') }}" class="btn btn-glass px-3 py-2 fw-semibold">
+      <i class="fa fa-university me-1 text-primary"></i>All Universities Dashboard
     </a>
   </div>
 </div>
@@ -105,22 +122,15 @@
   </div>
 </div>
 
+{% if current_user %}
 <!-- ================= SECTION 1: MY SUBMITTED REQUESTS ================= -->
 <div class="glass-panel p-4 mb-5">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div>
       <h4 class="fw-bold mb-1 text-dark">
-        <i class="fa fa-clipboard-user text-primary me-2"></i>My Submitted Requests
+        <i class="fa fa-clipboard-user text-primary me-2"></i>My Lost Belongings
       </h4>
-      <p class="small text-secondary mb-0">Track verification status of your lost and found submissions</p>
-    </div>
-    <div class="d-flex gap-2">
-      <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-outline-danger btn-sm">
-        <i class="fa fa-plus me-1"></i>New Lost Request
-      </a>
-      <a href="{{ url_for('reports.new_report', type='found') }}" class="btn btn-outline-success btn-sm">
-        <i class="fa fa-plus me-1"></i>New Found Request
-      </a>
+      <p class="small text-secondary mb-0">Track verification status of your lost item submissions</p>
     </div>
   </div>
 
@@ -204,27 +214,20 @@
       </div>
       <h5 class="fw-bold text-dark">No Requests Submitted Yet</h5>
       <p class="small text-secondary mb-3" style="max-width:440px; margin:0 auto;">
-        Have you lost personal belongings or found an unattended item on campus? Submit a request to notify Campus Administration.
+        Your submitted lost item reports and recovery tracking will appear here.
       </p>
-      <div class="d-flex gap-2 justify-content-center">
-        <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm">
-          <i class="fa fa-plus me-1"></i>Report Lost Item
-        </a>
-        <a href="{{ url_for('reports.new_report', type='found') }}" class="btn btn-glow-emerald btn-sm">
-          <i class="fa fa-plus me-1"></i>Report Found Item
-        </a>
-      </div>
     </div>
   {% endif %}
 </div>
+{% endif %}
 
 <!-- ================= SECTION 2: VERIFIED CAMPUS FEED ================= -->
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <div>
     <h4 class="fw-bold mb-1 text-dark">
-      <i class="fa fa-shield-check text-success me-2"></i>Verified Campus Lost &amp; Found
+      <i class="fa fa-magnifying-glass text-danger me-2"></i>Campus Lost Belongings
     </h4>
-    <p class="small text-secondary mb-0">Live items approved by {{ university.name }} Campus Administration</p>
+    <p class="small text-secondary mb-0">Active lost items across {{ university.name }} · Click any item picture to submit recovery details</p>
   </div>
   <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">
     Browse All Campus Items <i class="fa fa-arrow-right ms-1"></i>
@@ -243,7 +246,6 @@
           {% endif %}
           <div class="report-item-overlay">
             <span class="badge-{{ r.type }}"><i class="fa fa-{% if r.type == 'lost' %}search{% else %}circle-check{% endif %} me-1"></i>{{ r.type }}</span>
-            {% if r.reward %}<span class="badge bg-warning text-dark fw-bold"><i class="fa fa-gift me-1"></i>Reward</span>{% endif %}
           </div>
         </div>
         <div class="report-item-content">

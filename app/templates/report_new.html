@@ -87,19 +87,11 @@
 
         <div class="row g-3 mb-3">
           <!-- Date -->
-          <div class="col-md-6">
+          <div class="col-md-12">
             <label class="form-label-custom">
               <i class="fa fa-calendar text-info"></i>Date of Incident
             </label>
             <input type="date" name="date" max="{{ today }}" class="form-control-custom w-100" value="{{ form.get('date', today) }}" required>
-          </div>
-
-          <!-- Reward (Optional for Lost items) -->
-          <div class="col-md-6" id="reward-field">
-            <label class="form-label-custom">
-              <i class="fa fa-gift text-warning"></i>Reward Offered (Optional)
-            </label>
-            <input type="text" name="reward" class="form-control-custom w-100" placeholder="e.g. $50 Cash Reward or Free Lunch" value="{{ form.get('reward', '') }}">
           </div>
         </div>
 
