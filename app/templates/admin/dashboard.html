@@ -194,33 +194,59 @@
                   <h6 class="fw-bold text-dark mb-1">
                     {{ c.report.title if c.report else 'Campus Item' }}
                   </h6>
-                  <span class="badge-{{ c.report.type if c.report else 'found' }}">
-                    {{ c.report.type | upper if c.report else 'FOUND' }}
-                  </span>
+                  {% if c.report and c.report.type == 'lost' %}
+                    <span class="badge bg-success text-white">
+                      <i class="fa fa-box me-1"></i>FOUND ITEM TURNED IN
+                    </span>
+                  {% else %}
+                    <span class="badge bg-info text-white">
+                      <i class="fa fa-hand-holding-heart me-1"></i>OWNERSHIP CLAIM
+                    </span>
+                  {% endif %}
                   <span class="badge bg-light text-dark border ms-1">{{ c.report.location if c.report else '' }}</span>
                 </div>
                 <span class="badge bg-warning text-dark"><i class="fa fa-clock me-1"></i>Awaiting Decision</span>
               </div>
 
-              <!-- Claimant Info -->
+              <!-- Parties Info -->
               <div class="p-3 rounded my-3" style="background:#FFFFFF; border:1px solid #E2E8F0;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <strong class="text-dark"><i class="fa fa-user me-1 text-primary"></i>Claimant: {{ c.claimant_name }}</strong>
-                  <span class="badge bg-light text-primary border">{{ c.claimant_role | capitalize if c.claimant_role else 'Student' }}</span>
-                </div>
-                <div class="small text-secondary mb-1"><i class="fa fa-envelope me-1"></i>{{ c.claimant_email }}</div>
-                {% if c.claimant_phone %}
-                  <div class="small text-info mb-2"><i class="fa fa-phone me-1"></i>{{ c.claimant_phone }}</div>
-                {% endif %}
-
-                <div class="small text-dark mt-2 p-2 rounded" style="background:#F8FAFC; border-left:3px solid #0284C7;">
-                  <strong>Proof / Statement:</strong> {{ c.message }}
-                </div>
-
-                {% if c.security_answer %}
-                  <div class="small text-warning mt-2">
-                    <i class="fa fa-key me-1"></i><strong>Security Answer:</strong> {{ c.security_answer }}
+                {% if c.report and c.report.type == 'lost' %}
+                  <!-- Owner / Loser info -->
+                  <div class="mb-2 pb-2 border-bottom">
+                    <span class="text-secondary small d-block">Original Owner (Person Who Lost Item):</span>
+                    <strong class="text-dark"><i class="fa fa-user-circle me-1 text-danger"></i>{{ c.report.reporter_name }}</strong>
+                    <span class="text-muted small">({{ c.report.reporter_email }})</span>
                   </div>
+                  <!-- Finder info -->
+                  <div class="mb-2">
+                    <span class="text-secondary small d-block">Found &amp; Turned In By:</span>
+                    <strong class="text-dark"><i class="fa fa-handshake me-1 text-success"></i>{{ c.claimant_name }}</strong>
+                    <span class="badge bg-light text-primary border ms-1">{{ c.claimant_role | capitalize if c.claimant_role else 'Campus Member' }}</span>
+                    {% if c.claimant_phone %}<span class="text-info small ms-1"><i class="fa fa-phone me-1"></i>{{ c.claimant_phone }}</span>{% endif %}
+                  </div>
+                  <div class="small text-dark p-2 rounded" style="background:#F0FDF4; border-left:3px solid #10B981;">
+                    <strong>Turn-In Location &amp; Notes:</strong> {{ c.message }}
+                  </div>
+                {% else %}
+                  <!-- Standard ownership claim -->
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-dark"><i class="fa fa-user me-1 text-primary"></i>Claimant: {{ c.claimant_name }}</strong>
+                    <span class="badge bg-light text-primary border">{{ c.claimant_role | capitalize if c.claimant_role else 'Student' }}</span>
+                  </div>
+                  <div class="small text-secondary mb-1"><i class="fa fa-envelope me-1"></i>{{ c.claimant_email }}</div>
+                  {% if c.claimant_phone %}
+                    <div class="small text-info mb-2"><i class="fa fa-phone me-1"></i>{{ c.claimant_phone }}</div>
+                  {% endif %}
+
+                  <div class="small text-dark mt-2 p-2 rounded" style="background:#F8FAFC; border-left:3px solid #0284C7;">
+                    <strong>Proof / Statement:</strong> {{ c.message }}
+                  </div>
+
+                  {% if c.security_answer %}
+                    <div class="small text-warning mt-2">
+                      <i class="fa fa-key me-1"></i><strong>Security Answer:</strong> {{ c.security_answer }}
+                    </div>
+                  {% endif %}
                 {% endif %}
               </div>
             </div>
@@ -229,7 +255,11 @@
             <div class="d-flex gap-2">
               <form method="post" action="{{ url_for('admin.give_claim_item', claim_id=c._id) }}" class="flex-grow-1">
                 <button class="btn btn-glow-emerald btn-sm w-100 py-2 fw-semibold">
-                  <i class="fa fa-handshake me-1"></i>Authorize Handover (Give Item)
+                  {% if c.report and c.report.type == 'lost' %}
+                    <i class="fa fa-handshake me-1"></i>Verify &amp; Authorize Handover to Owner ({{ c.report.reporter_name.split()[0] }})
+                  {% else %}
+                    <i class="fa fa-handshake me-1"></i>Authorize Handover to Claimant ({{ c.claimant_name.split()[0] }})
+                  {% endif %}
                 </button>
               </form>
               {% if c.report %}

@@ -200,28 +200,68 @@ def give_item(report_id, target_claim_id=None):
         db.claims.update_one({"_id": claim_doc["_id"]}, {"$set": {"status": "approved", "decided_at": _now(), "decided_by": g.user["_id"]}})
         db.claims.update_many({"report_id": report["_id"], "_id": {"$ne": claim_doc["_id"]}, "status": "pending"}, {"$set": {"status": "rejected"}})
 
-        # Notify claimant
-        create_notification(
-            user_id=claim_doc["claimant_id"],
-            university_id=g.university["_id"],
-            title="Item Handed Over! 🎉",
-            message=f"Your claim on '{report['title']}' was approved by campus administration. Item has been officially handed over.",
-            link=url_for("reports.handover_pass", report_id=report["_id"]),
-            ntype="item_handed_over"
-        )
+        if report.get("type") == "lost":
+            # Item was lost by reporter; claimant is the finder who located it
+            owner_id = report.get("reporter_id")
+            owner_name = report.get("reporter_name", "Owner")
+            finder_id = claim_doc.get("claimant_id")
+            finder_name = claim_doc.get("claimant_name", "Finder")
 
-    # Notify reporter
-    if report.get("reporter_id"):
-        create_notification(
-            user_id=report["reporter_id"],
-            university_id=g.university["_id"],
-            title="Item Safely Handed Over! 🎉",
-            message=f"Your report '{report['title']}' has been marked as safely recovered and handed over.",
-            link=url_for("reports.detail", report_id=report["_id"]),
-            ntype="report_resolved"
-        )
+            # 1. Notify the owner (loser) that item has been verified and Handover Pass is issued!
+            if owner_id:
+                create_notification(
+                    user_id=owner_id,
+                    university_id=g.university["_id"],
+                    title="🎉 Your Lost Item is Ready for Handover!",
+                    message=f"Campus Administration verified '{report['title']}' found by {finder_name}. Open your Digital Handover Pass to collect it from the safety desk.",
+                    link=url_for("reports.handover_pass", report_id=report["_id"]),
+                    ntype="item_handed_over"
+                )
 
-    flash(f"Item '{report['title']}' has been officially handed over and case marked resolved!", "success")
+            # 2. Notify the finder thanking them for turning in the item
+            if finder_id:
+                create_notification(
+                    user_id=finder_id,
+                    university_id=g.university["_id"],
+                    title="Item Verified & Handed Over! 👏",
+                    message=f"Thank you, {finder_name}! The '{report['title']}' you found has been verified by Administration and authorized for handover to {owner_name}.",
+                    link=url_for("reports.detail", report_id=report["_id"]),
+                    ntype="finder_verified"
+                )
+
+            flash(f"Item '{report['title']}' verified! Handover authorized to owner ({owner_name}). Digital Handover Pass issued.", "success")
+        else:
+            # Report was a found item; claimant is the owner
+            create_notification(
+                user_id=claim_doc["claimant_id"],
+                university_id=g.university["_id"],
+                title="Item Handed Over! 🎉",
+                message=f"Your claim on '{report['title']}' was approved by campus administration. Item has been officially handed over.",
+                link=url_for("reports.handover_pass", report_id=report["_id"]),
+                ntype="item_handed_over"
+            )
+            if report.get("reporter_id"):
+                create_notification(
+                    user_id=report["reporter_id"],
+                    university_id=g.university["_id"],
+                    title="Item Safely Handed Over! 🎉",
+                    message=f"Your found report '{report['title']}' has been returned to its verified owner.",
+                    link=url_for("reports.detail", report_id=report["_id"]),
+                    ntype="report_resolved"
+                )
+            flash(f"Item '{report['title']}' has been officially handed over to claimant and case marked resolved!", "success")
+    else:
+        # Direct resolution without specific claim
+        if report.get("reporter_id"):
+            create_notification(
+                user_id=report["reporter_id"],
+                university_id=g.university["_id"],
+                title="Item Handed Over & Case Resolved! 🎉",
+                message=f"Your report '{report['title']}' has been marked as safely recovered by Campus Administration.",
+                link=url_for("reports.detail", report_id=report["_id"]),
+                ntype="report_resolved"
+            )
+        flash(f"Item '{report['title']}' marked as safely recovered and resolved.", "success")
     return redirect(request.referrer or url_for("admin.dashboard"))
 
 

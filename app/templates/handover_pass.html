@@ -47,9 +47,21 @@
           <strong class="small text-white">{{ report.category }}</strong>
         </div>
         <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
-          <span class="small text-secondary">Authorized Claimant:</span>
-          <strong class="small text-white">{{ claim.claimant_name if claim else current_user.name }}</strong>
+          <span class="small text-secondary">Authorized Recipient (Owner):</span>
+          <strong class="small text-white">
+            {% if report.type == 'lost' %}
+              {{ report.reporter_name }}
+            {% else %}
+              {{ claim.claimant_name if claim else current_user.name }}
+            {% endif %}
+          </strong>
         </div>
+        {% if claim and report.type == 'lost' %}
+          <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
+            <span class="small text-secondary">Found &amp; Turned In By:</span>
+            <strong class="small text-white">{{ claim.claimant_name }}</strong>
+          </div>
+        {% endif %}
         <div class="d-flex justify-content-between py-2 border-bottom border-secondary border-opacity-25">
           <span class="small text-secondary">Pickup Location:</span>
           <strong class="small text-white">{{ university.security_office or 'Central Security Desk Room 104' }}</strong>

@@ -192,18 +192,48 @@
       </div>
     {% endif %}
 
-    <!-- 2. Claimant Form (For regular users on open reports) -->
+    <!-- Resolved Status Banner -->
+    {% if report.status == 'resolved' %}
+      <div class="glass-panel p-4 mb-4" style="border: 2px solid #10B981; background: #ECFDF5;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:48px; height:48px; border-radius:12px; background:#D1FAE5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+            <i class="fa fa-circle-check"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Safely Handed Over &amp; Recovered! 🎉</h6>
+            <p class="small text-secondary mb-0">Officially verified and authorized by Campus Administration.</p>
+          </div>
+        </div>
+        <a href="{{ url_for('reports.handover_pass', report_id=report._id) }}" class="btn btn-glow-emerald btn-sm w-100 mt-3">
+          <i class="fa fa-qrcode me-2"></i>View Digital Handover Pass
+        </a>
+      </div>
+    {% endif %}
+
+    <!-- 2. Claimant / Finder Form (For regular users on open reports) -->
     {% if not can_manage and report.status == 'open' %}
-      <div class="glass-panel p-4 mb-4">
+      <div class="glass-panel p-4 mb-4" id="found-section" style="{{ 'border: 1px solid #A7F3D0; background: #F0FDF4;' if report.type == 'lost' else '' }}">
         {% if my_claim %}
           <div class="d-flex align-items-center gap-2 mb-3">
             <i class="fa fa-clipboard-check text-emerald fs-4"></i>
             <div>
-              <h6 class="fw-bold text-dark mb-0">Your Claim is Under Review</h6>
+              <h6 class="fw-bold text-dark mb-0">
+                {% if report.type == 'lost' %}
+                  You Reported Finding This Item!
+                {% else %}
+                  Your Claim is Under Review
+                {% endif %}
+              </h6>
               <span class="badge badge-{{ my_claim.status }} mt-1">{{ my_claim.status | capitalize }}</span>
             </div>
           </div>
-          <p class="small text-secondary mb-3">{{ my_claim.message }}</p>
+          <p class="small text-secondary mb-3">
+            {% if report.type == 'lost' %}
+              Your recovery report has been sent to Campus Administration. Once verified, admin will authorize handover to {{ report.reporter_name }}.
+            {% else %}
+              {{ my_claim.message }}
+            {% endif %}
+          </p>
           {% if my_claim.status == 'approved' %}
             <a href="{{ url_for('reports.handover_pass', report_id=report._id) }}" class="btn btn-glow-emerald w-100">
               <i class="fa fa-qrcode me-2"></i>Open Digital Handover Pass
@@ -211,23 +241,35 @@
           {% endif %}
         {% else %}
           <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="fa fa-hand-holding-heart text-primary fs-4"></i>
+            <div style="width:36px; height:36px; border-radius:10px; background:{{ '#D1FAE5' if report.type == 'lost' else '#EEF2FF' }}; color:{{ '#059669' if report.type == 'lost' else '#4F46E5' }}; display:flex; align-items:center; justify-content:center; font-size:1.15rem;">
+              <i class="fa fa-{{ 'handshake' if report.type == 'lost' else 'hand-holding-heart' }}"></i>
+            </div>
             <div>
               <h6 class="fw-bold text-dark mb-0">
-                {{ 'This Belongs to Me' if report.type == 'found' else 'I Found This Item' }}
+                {% if report.type == 'lost' %}
+                  🎯 I Found This Item!
+                {% else %}
+                  ✋ This Belongs to Me (Claim Item)
+                {% endif %}
               </h6>
-              <p class="small text-secondary mb-0">Submit a claim to initiate safe campus recovery.</p>
+              <p class="small text-secondary mb-0">
+                {% if report.type == 'lost' %}
+                  Submit recovery details to Campus Administration to verify &amp; hand over to {{ report.reporter_name }}.
+                {% else %}
+                  Submit proof of ownership to initiate verified campus retrieval.
+                {% endif %}
+              </p>
             </div>
           </div>
 
           {% if not current_user %}
             <div class="p-3 rounded text-center" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
-              <p class="small text-secondary mb-3">You must be logged in to file a verified claim on this item.</p>
-              <a href="{{ url_for('auth.login') }}" class="btn btn-glow-primary btn-sm">Log In to Claim</a>
+              <p class="small text-secondary mb-3">You must be logged in to submit details for this item.</p>
+              <a href="{{ url_for('auth.login') }}" class="btn btn-glow-primary btn-sm">Log In</a>
             </div>
           {% else %}
             <form method="post" action="{{ url_for('reports.claim', report_id=report._id) }}">
-              {% if report.security_question %}
+              {% if report.security_question and report.type == 'found' %}
                 <div class="mb-3">
                   <label class="form-label-custom text-warning">
                     <i class="fa fa-key"></i>Security Challenge Answer
@@ -245,14 +287,23 @@
 
               <div class="mb-3">
                 <label class="form-label-custom">
-                  <i class="fa fa-shield"></i>Proof of Ownership / Details
+                  <i class="fa fa-{{ 'location-dot text-danger' if report.type == 'lost' else 'shield text-primary' }}"></i>
+                  {% if report.type == 'lost' %}
+                    Where is the item now? / Where did you find it?
+                  {% else %}
+                    Proof of Ownership &amp; Identifying Details
+                  {% endif %}
                 </label>
                 <textarea name="message" rows="3" class="form-control-custom w-100" minlength="8" required
-                  placeholder="{{ 'Describe unique markings, contents, or circumstances confirming this is yours...' if report.type == 'found' else 'Where and when did you locate it? How can the owner recover it?' }}"></textarea>
+                  placeholder="{{ 'e.g. Turned in to Campus Security Desk Room 104, or located on table 4 in Computer Science Lab...' if report.type == 'lost' else 'Describe unique markings, contents, serial numbers, or circumstances confirming this is yours...' }}"></textarea>
               </div>
 
-              <button class="btn btn-glow-primary w-100 py-2">
-                <i class="fa fa-paper-plane me-2"></i>Submit Official Claim
+              <button class="btn btn-{{ 'glow-emerald' if report.type == 'lost' else 'glow-primary' }} w-100 py-2 fw-semibold">
+                {% if report.type == 'lost' %}
+                  <i class="fa fa-paper-plane me-2"></i>Submit Found Report to Admin Desk
+                {% else %}
+                  <i class="fa fa-paper-plane me-2"></i>Submit Official Claim to Admin
+                {% endif %}
               </button>
             </form>
           {% endif %}

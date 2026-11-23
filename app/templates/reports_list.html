@@ -140,6 +140,14 @@
             <i class="fa fa-calendar"></i>
             <span>{{ r.date }}</span>
           </div>
+          {% if r.type == 'lost' and r.status == 'open' and session.get('user_id') != (r.reporter_id | string) %}
+            <div class="mt-2 pt-2 border-top border-light d-flex justify-content-between align-items-center">
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="fa fa-hand-holding-heart me-1"></i>Did you find this?
+              </span>
+              <span class="text-success fw-bold small">Turn In to Admin &rarr;</span>
+            </div>
+          {% endif %}
         </div>
       </a>
     </div>

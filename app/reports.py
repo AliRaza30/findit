@@ -333,7 +333,7 @@ def claim(report_id):
     report = _own_report_or_404(report_id)
 
     if report.get("reporter_id") == g.user["_id"]:
-        flash("You cannot claim your own report.", "warning")
+        flash("You cannot claim or report finding your own item.", "warning")
         return redirect(url_for("reports.detail", report_id=report["_id"]))
 
     if report.get("status") != "open":
@@ -341,7 +341,7 @@ def claim(report_id):
         return redirect(url_for("reports.detail", report_id=report["_id"]))
 
     if db.claims.find_one({"report_id": report["_id"], "claimant_id": g.user["_id"]}):
-        flash("You have already submitted a claim for this report.", "info")
+        flash("You have already submitted a request for this item.", "info")
         return redirect(url_for("reports.detail", report_id=report["_id"]))
 
     message = request.form.get("message", "").strip()
@@ -349,8 +349,11 @@ def claim(report_id):
     contact_phone = request.form.get("contact_phone", "").strip()
 
     if len(message) < 8:
-        flash("Please provide sufficient proof of ownership or recovery details (at least 8 characters).", "danger")
+        flash("Please provide sufficient location/proof details (at least 8 characters).", "danger")
         return redirect(url_for("reports.detail", report_id=report["_id"]))
+
+    is_finder = (report["type"] == "lost")
+    kind = "finder" if is_finder else "ownership"
 
     claim_doc = {
         "university_id": g.university["_id"],
@@ -359,7 +362,8 @@ def claim(report_id):
         "claimant_name": g.user["name"],
         "claimant_email": g.user["email"],
         "claimant_phone": contact_phone,
-        "kind": "ownership" if report["type"] == "found" else "finder",
+        "claimant_role": g.user.get("role", "student"),
+        "kind": kind,
         "message": message,
         "security_answer": security_answer,
         "status": "pending",
@@ -367,17 +371,54 @@ def claim(report_id):
     }
     db.claims.insert_one(claim_doc)
 
-    # Notify reporter
-    create_notification(
-        user_id=report.get("reporter_id"),
-        university_id=g.university["_id"],
-        title="New Claim Received!",
-        message=f"{g.user['name']} submitted a claim for '{report['title']}'.",
-        link=url_for("reports.detail", report_id=report["_id"]),
-        ntype="claim"
-    )
+    if is_finder:
+        # Finder found someone's lost item -> Request sent to Admin for verification and handover to the loser
+        admins = list(db.users.find({"university_id": g.university["_id"], "role": "admin"}))
+        for adm in admins:
+            create_notification(
+                user_id=adm["_id"],
+                university_id=g.university["_id"],
+                title="📦 Found Item Turned In! Awaiting Verification",
+                message=f"{g.user['name']} reported finding '{report['title']}' belonging to {report['reporter_name']}. Please verify and authorize handover to the owner.",
+                link=url_for("admin.dashboard"),
+                ntype="item_found_turned_in"
+            )
 
-    flash("Claim submitted successfully! The reporter and campus safety desk have been notified.", "success")
+        # Notify the person who lost it (the loser)
+        create_notification(
+            user_id=report.get("reporter_id"),
+            university_id=g.university["_id"],
+            title="Good News! Your Lost Item Was Located! 📦",
+            message=f"{g.user['name']} reported finding your '{report['title']}'. Campus Administration is verifying the item and will authorize handover.",
+            link=url_for("reports.detail", report_id=report["_id"]),
+            ntype="item_located"
+        )
+
+        flash("Thank you! Your recovery report has been submitted to Campus Administration. Admin will verify the item and authorize handover to the owner.", "success")
+    else:
+        # Ownership claim on a found item
+        admins = list(db.users.find({"university_id": g.university["_id"], "role": "admin"}))
+        for adm in admins:
+            create_notification(
+                user_id=adm["_id"],
+                university_id=g.university["_id"],
+                title="New Ownership Claim Received",
+                message=f"{g.user['name']} filed an ownership claim for '{report['title']}'. Review in Admin Command Center.",
+                link=url_for("admin.dashboard"),
+                ntype="claim_received"
+            )
+
+        create_notification(
+            user_id=report.get("reporter_id"),
+            university_id=g.university["_id"],
+            title="New Claim Received!",
+            message=f"{g.user['name']} submitted a claim for '{report['title']}'.",
+            link=url_for("reports.detail", report_id=report["_id"]),
+            ntype="claim"
+        )
+
+        flash("Claim submitted successfully! Campus Administration and the reporter have been notified for verification.", "success")
+
     return redirect(url_for("reports.detail", report_id=report["_id"]))
 
 
@@ -476,10 +517,15 @@ def handover_pass(report_id):
     report = _own_report_or_404(report_id)
     db = get_db()
 
-    # Find approved claim
     claim_doc = db.claims.find_one({"report_id": report["_id"], "status": "approved"})
-    if not claim_doc and not _can_manage(report):
-        flash("Handover pass is only issued for approved claims.", "warning")
+
+    # Check authorization: Admin, Staff, the item owner (loser/reporter), or the approved claimant
+    is_owner = (report.get("reporter_id") == g.user["_id"])
+    is_claimant = bool(claim_doc and claim_doc.get("claimant_id") == g.user["_id"])
+    is_admin_or_staff = g.user.get("role") in ("admin", "staff")
+
+    if not (is_owner or is_claimant or is_admin_or_staff):
+        flash("Access restricted to the verified owner, finder, or campus administration.", "danger")
         return redirect(url_for("reports.detail", report_id=report["_id"]))
 
     verification_code = f"PASS-{str(report['_id'])[-6:].upper()}"
