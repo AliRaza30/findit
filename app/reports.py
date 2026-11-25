@@ -336,6 +336,74 @@ def detail(report_id):
     )
 
 
+@bp.route("/reports/<report_id>/relist", methods=["GET", "POST"])
+@login_required
+def relist_report(report_id):
+    """Allows an owner or admin to relist a lost item."""
+    uni = _get_current_or_guest_university()
+    report = _own_report_or_404(report_id, uni=uni)
+    db = get_db()
+
+    is_admin = (g.user.get("role") == "admin")
+    is_owner = (report.get("reporter_id") == g.user["_id"])
+
+    if not (is_admin or is_owner):
+        flash("You can only relist your own reports.", "danger")
+        return redirect(url_for("reports.list_reports"))
+
+    if request.method == "POST":
+        new_status = "open" if is_admin else "pending_approval"
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        db.reports.update_one(
+            {"_id": report["_id"]},
+            {
+                "$set": {
+                    "status": new_status,
+                    "date": today_str,
+                    "created_at": _now(),
+                },
+                "$unset": {
+                    "resolved_at": "",
+                    "rejected_at": "",
+                    "rejected_by": "",
+                }
+            }
+        )
+
+        if not is_admin:
+            admins = list(db.users.find({"university_id": uni["_id"], "role": "admin"}))
+            for adm in admins:
+                create_notification(
+                    user_id=adm["_id"],
+                    university_id=uni["_id"],
+                    title="Lost Item Relisted Awaiting Approval",
+                    message=f"{g.user['name']} has relisted '{report['title']}'. Review and approve in Admin Command Center.",
+                    link=url_for("admin.dashboard"),
+                    ntype="pending_approval"
+                )
+            flash(f"'{report['title']}' has been relisted! It will appear on the campus board once verified by administration.", "success")
+        else:
+            flash(f"'{report['title']}' has been relisted and published live.", "success")
+
+        return redirect(url_for("reports.detail", report_id=report["_id"]))
+
+    # GET: open new_report pre-populated with this item's details
+    prefill = {
+        "type": report.get("type", "lost"),
+        "title": report.get("title", ""),
+        "description": report.get("description", ""),
+        "category": report.get("category", ""),
+        "location": report.get("location", ""),
+        "date": datetime.now().strftime("%Y-%m-%d"),
+    }
+    return render_template(
+        "report_new.html",
+        form=prefill,
+        today=datetime.now().strftime("%Y-%m-%d"),
+        is_admin=is_admin
+    )
+
+
 @bp.route("/reports/<report_id>/claim", methods=["POST"])
 @login_required
 def claim(report_id):

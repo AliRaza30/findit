@@ -132,6 +132,9 @@
       </h4>
       <p class="small text-secondary mb-0">Track verification status of your lost item submissions</p>
     </div>
+    <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm px-3 py-2 fw-semibold">
+      <i class="fa fa-plus-circle me-1"></i>Report Lost Item
+    </a>
   </div>
 
   {% if my_reports %}
@@ -198,9 +201,18 @@
                 {% endif %}
               </td>
               <td class="text-end">
-                <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="btn btn-glass btn-sm" title="View details and AI matches">
-                  <i class="fa fa-eye me-1"></i>View
-                </a>
+                <div class="d-flex justify-content-end align-items-center gap-1">
+                  <a href="{{ url_for('reports.detail', report_id=r._id) }}" class="btn btn-glass btn-sm" title="View details and matches">
+                    <i class="fa fa-eye me-1"></i>View
+                  </a>
+                  {% if r.status in ('resolved', 'rejected') %}
+                    <form method="post" action="{{ url_for('reports.relist_report', report_id=r._id) }}" style="display:inline;" onsubmit="return confirm('Relist this lost item for admin verification?');">
+                      <button type="submit" class="btn btn-outline-warning btn-sm py-1 px-2" style="font-size:0.75rem;" title="Relist this lost item">
+                        <i class="fa fa-rotate-right me-1"></i>Relist
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
               </td>
             </tr>
           {% endfor %}
@@ -212,10 +224,13 @@
       <div style="width:64px; height:64px; border-radius:50%; background:#EEF2FF; display:inline-flex; align-items:center; justify-content:center; color:#4F46E5; font-size:1.8rem; margin-bottom:1rem;">
         <i class="fa fa-inbox"></i>
       </div>
-      <h5 class="fw-bold text-dark">No Requests Submitted Yet</h5>
+      <h5 class="fw-bold text-dark">No Lost Items Reported Yet</h5>
       <p class="small text-secondary mb-3" style="max-width:440px; margin:0 auto;">
-        Your submitted lost item reports and recovery tracking will appear here.
+        Have you lost something on campus? Report your lost item now so campus administration and fellow members can help locate and return it.
       </p>
+      <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm px-4 py-2 fw-semibold">
+        <i class="fa fa-plus-circle me-1"></i>Report Lost Item Now
+      </a>
     </div>
   {% endif %}
 </div>
@@ -229,9 +244,16 @@
     </h4>
     <p class="small text-secondary mb-0">Active lost items across {{ university.name }} · Click any item picture to submit recovery details</p>
   </div>
-  <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">
-    Browse All Campus Items <i class="fa fa-arrow-right ms-1"></i>
-  </a>
+  <div class="d-flex gap-2">
+    {% if current_user %}
+      <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm px-3">
+        <i class="fa fa-plus me-1"></i>Report Lost Item
+      </a>
+    {% endif %}
+    <a href="{{ url_for('reports.list_reports') }}" class="btn btn-glass btn-sm">
+      Browse All Campus Items <i class="fa fa-arrow-right ms-1"></i>
+    </a>
+  </div>
 </div>
 
 <div class="row g-4 mb-5">

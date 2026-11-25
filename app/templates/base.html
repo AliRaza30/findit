@@ -81,6 +81,11 @@
             </a>
           </li>
           <li class="nav-item">
+            <a class="nav-link-custom text-danger fw-semibold" href="{{ url_for('reports.new_report', type='lost') }}">
+              <i class="fa fa-plus-circle text-danger"></i>Report Lost Item
+            </a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link-custom" href="{{ url_for('reports.campus_map') }}">
               <i class="fa fa-map-location-dot text-success"></i>Campus Map
             </a>
@@ -94,6 +99,11 @@
       </ul>
 
       <div class="d-flex align-items-center gap-2 flex-wrap mt-2 mt-lg-0">
+        {% if current_user %}
+          <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose btn-sm px-3" style="font-size:0.8rem; font-weight:600;">
+            <i class="fa fa-plus me-1"></i>Report Lost Item
+          </a>
+        {% endif %}
         <a href="{{ url_for('auth.register_university') }}" class="btn btn-outline-primary btn-sm px-3" style="font-size:0.8rem; font-weight:600;">
           <i class="fa fa-plus-circle me-1"></i>Add University
         </a>

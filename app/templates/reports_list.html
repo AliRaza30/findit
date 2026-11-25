@@ -16,6 +16,11 @@
   </div>
 
   <div class="d-flex gap-2 flex-wrap">
+    {% if current_user %}
+      <a href="{{ url_for('reports.new_report', type='lost') }}" class="btn btn-glow-rose px-3 fw-semibold">
+        <i class="fa fa-plus-circle me-1"></i>Report Lost Item
+      </a>
+    {% endif %}
     <a href="{{ url_for('reports.campus_map') }}" class="btn btn-glass px-3">
       <i class="fa fa-map-location-dot me-1 text-info"></i>Campus Map
     </a>
